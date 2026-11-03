@@ -1,0 +1,10 @@
+{
+  "name": "Tree",
+  "identifier": "local.tree.notes",
+  "version": "0.1.0",
+  "icon": "assets/app-icon.png",
+  "macos": {
+    "icon": "assets/AppIcon.icon"
+  },
+  "out": "build"
+}

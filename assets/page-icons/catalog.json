@@ -1,0 +1,1122 @@
+[
+  {
+    "id": "books",
+    "name": "Books",
+    "label": "书籍 阅读 读书",
+    "group": "学习与工作",
+    "source": "assets/Books/Flat/books_flat.svg",
+    "sha256": "41e2686cdc526bfa41ea599e2a74378f3a02788ff7e8cd1b9ad0a39ea157000c"
+  },
+  {
+    "id": "open_book",
+    "name": "Open book",
+    "label": "打开的书 学习 阅读",
+    "group": "学习与工作",
+    "source": "assets/Open book/Flat/open_book_flat.svg",
+    "sha256": "84809f80ba9252021198ee4f015f1e16ac76020727625c3ee611712c017108b4"
+  },
+  {
+    "id": "notebook",
+    "name": "Notebook",
+    "label": "笔记 笔记本",
+    "group": "学习与工作",
+    "source": "assets/Notebook/Flat/notebook_flat.svg",
+    "sha256": "88d97d0a553b501eab3ed70feb191481dfcf12a308ecc7ece2afdbfb74f102c1"
+  },
+  {
+    "id": "memo",
+    "name": "Memo",
+    "label": "备忘 记录 写作",
+    "group": "学习与工作",
+    "source": "assets/Memo/Flat/memo_flat.svg",
+    "sha256": "c25d823ddb3ed0d9c66eff249456ff681244dbb1c9a7d19785864607f46a4f3a"
+  },
+  {
+    "id": "pencil",
+    "name": "Pencil",
+    "label": "铅笔 写作",
+    "group": "学习与工作",
+    "source": "assets/Pencil/Flat/pencil_flat.svg",
+    "sha256": "f82b7820c41b57d2cca96ef75e32fdedcb07d2d8b786a781274c25fe306c76d7"
+  },
+  {
+    "id": "pen",
+    "name": "Pen",
+    "label": "钢笔",
+    "group": "学习与工作",
+    "source": "assets/Pen/Flat/pen_flat.svg",
+    "sha256": "302d3ce8f609b09dbff8af43ea9e0b5fbd9a4e9404e8381f0190fd98b4c991d8"
+  },
+  {
+    "id": "graduation_cap",
+    "name": "Graduation cap",
+    "label": "毕业 学业",
+    "group": "学习与工作",
+    "source": "assets/Graduation cap/Flat/graduation_cap_flat.svg",
+    "sha256": "8bd1f157195b278cfea4e5b852df232c4ca89dc6eb2174b1f1473ad1c0102be1"
+  },
+  {
+    "id": "school",
+    "name": "School",
+    "label": "学校",
+    "group": "学习与工作",
+    "source": "assets/School/Flat/school_flat.svg",
+    "sha256": "03febeb59b9c13ee792874a87cd04aea413e7c6ef23b1e7752837dc5d6cbe34d"
+  },
+  {
+    "id": "briefcase",
+    "name": "Briefcase",
+    "label": "公文包 工作",
+    "group": "学习与工作",
+    "source": "assets/Briefcase/Flat/briefcase_flat.svg",
+    "sha256": "2dae84f4f31b2302fd03d2089dc7a88ab971db12ca64a3f89fad37de4e565a31"
+  },
+  {
+    "id": "file_folder",
+    "name": "File folder",
+    "label": "文件夹 项目",
+    "group": "学习与工作",
+    "source": "assets/File folder/Flat/file_folder_flat.svg",
+    "sha256": "870727aa9758f76359181c035456aba47e87d622a619a0ee80fb60b40070fbd1"
+  },
+  {
+    "id": "open_file_folder",
+    "name": "Open file folder",
+    "label": "打开文件夹",
+    "group": "学习与工作",
+    "source": "assets/Open file folder/Flat/open_file_folder_flat.svg",
+    "sha256": "2460acdc2c1a44d76dfd41e36e31b16130b39bda9bd3772bcb9362c425a3b1ad"
+  },
+  {
+    "id": "card_file_box",
+    "name": "Card file box",
+    "label": "归档 资料",
+    "group": "学习与工作",
+    "source": "assets/Card file box/Flat/card_file_box_flat.svg",
+    "sha256": "836382ad4694160d8c2ad1646fcbce44014de562421719eb53155c6b4a692e8e"
+  },
+  {
+    "id": "clipboard",
+    "name": "Clipboard",
+    "label": "剪贴板 任务",
+    "group": "学习与工作",
+    "source": "assets/Clipboard/Flat/clipboard_flat.svg",
+    "sha256": "547c9436baf05f0312c6afa0e9e07d174d22cce8498adf6cf68467487519c102"
+  },
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "label": "日历 计划",
+    "group": "学习与工作",
+    "source": "assets/Calendar/Flat/calendar_flat.svg",
+    "sha256": "a3840f324bdf1ddcb7001d2f238f438760934d24ce368129184f1f1e7ff915c9"
+  },
+  {
+    "id": "spiral_calendar",
+    "name": "Spiral calendar",
+    "label": "日程",
+    "group": "学习与工作",
+    "source": "assets/Spiral calendar/Flat/spiral_calendar_flat.svg",
+    "sha256": "27c46cba2ff535fc6bcc281467e6c828cf57cc02591dcea6465c6922610c4220"
+  },
+  {
+    "id": "page_facing_up",
+    "name": "Page facing up",
+    "label": "文档 页面",
+    "group": "学习与工作",
+    "source": "assets/Page facing up/Flat/page_facing_up_flat.svg",
+    "sha256": "64766aae9c7c49b8e3aae4f6aeaec44af202bec7655d2bb8124f0a74d8b29824"
+  },
+  {
+    "id": "bookmark",
+    "name": "Bookmark",
+    "label": "书签",
+    "group": "学习与工作",
+    "source": "assets/Bookmark/Flat/bookmark_flat.svg",
+    "sha256": "a1cafb2545b3d9452611ea97d0a42aa24261c9484a033ef6ef7ea3d23719762a"
+  },
+  {
+    "id": "label",
+    "name": "Label",
+    "label": "标签",
+    "group": "学习与工作",
+    "source": "assets/Label/Flat/label_flat.svg",
+    "sha256": "ccb2b3dbffc84c3ce4ec226ad3090d4907f933beed3020c3212030f299605255"
+  },
+  {
+    "id": "pushpin",
+    "name": "Pushpin",
+    "label": "图钉",
+    "group": "学习与工作",
+    "source": "assets/Pushpin/Flat/pushpin_flat.svg",
+    "sha256": "ed9e3591ed60a8dd25f6cef2c568f862a52bac4aeb1b651e328526c96ddb7117"
+  },
+  {
+    "id": "paperclip",
+    "name": "Paperclip",
+    "label": "回形针 附件",
+    "group": "学习与工作",
+    "source": "assets/Paperclip/Flat/paperclip_flat.svg",
+    "sha256": "a122cd5080f33fcbb65e33b7e96518a6642f2cf345a1da00fc4413919264138f"
+  },
+  {
+    "id": "bar_chart",
+    "name": "Bar chart",
+    "label": "柱状图 统计",
+    "group": "学习与工作",
+    "source": "assets/Bar chart/Flat/bar_chart_flat.svg",
+    "sha256": "8dc011d7019ed5cc70a6c82540e7f35806b0ff784e50ba6ab77276148ae5f256"
+  },
+  {
+    "id": "chart_increasing",
+    "name": "Chart increasing",
+    "label": "增长 趋势",
+    "group": "学习与工作",
+    "source": "assets/Chart increasing/Flat/chart_increasing_flat.svg",
+    "sha256": "a306f410105d146d616d5c8e86032c2abe25195ab3e0734746ca05d88855e9d8"
+  },
+  {
+    "id": "chart_decreasing",
+    "name": "Chart decreasing",
+    "label": "下降 趋势",
+    "group": "学习与工作",
+    "source": "assets/Chart decreasing/Flat/chart_decreasing_flat.svg",
+    "sha256": "562cdc53edc13a44e994efefed8ece1f4283006a01b5b4a99c5f4eaa8bbf388e"
+  },
+  {
+    "id": "money_bag",
+    "name": "Money bag",
+    "label": "钱袋 财务",
+    "group": "学习与工作",
+    "source": "assets/Money bag/Flat/money_bag_flat.svg",
+    "sha256": "4da969956b28cb2075af99deaa14f0861dc2cfd919628fe3c71739476b836444"
+  },
+  {
+    "id": "credit_card",
+    "name": "Credit card",
+    "label": "信用卡 支出",
+    "group": "学习与工作",
+    "source": "assets/Credit card/Flat/credit_card_flat.svg",
+    "sha256": "52ea60562d254c180436d1b8ff5f53bdceeae9347e374eceb1da77cb2bc342f1"
+  },
+  {
+    "id": "balance_scale",
+    "name": "Balance scale",
+    "label": "天平 法律",
+    "group": "学习与工作",
+    "source": "assets/Balance scale/Flat/balance_scale_flat.svg",
+    "sha256": "086e82d739451ebd0cf8dc7b23376bd3e2e019373dda6da487f8971bc0437e00"
+  },
+  {
+    "id": "envelope",
+    "name": "Envelope",
+    "label": "信封 邮件",
+    "group": "学习与工作",
+    "source": "assets/Envelope/Flat/envelope_flat.svg",
+    "sha256": "82a8b1c5576caa1c83ca9d1f2e7a340f84f86788969a27ff749811089d33353c"
+  },
+  {
+    "id": "package",
+    "name": "Package",
+    "label": "包裹",
+    "group": "学习与工作",
+    "source": "assets/Package/Flat/package_flat.svg",
+    "sha256": "82a5591c465302b009a3681ac2f45d21fac61d1b48e6d7fc956cc8a723dae14d"
+  },
+  {
+    "id": "laptop",
+    "name": "Laptop",
+    "label": "笔记本电脑 编程 代码",
+    "group": "科技与工具",
+    "source": "assets/Laptop/Flat/laptop_flat.svg",
+    "sha256": "c8fa307ed2c3e7e9e4267cff317caff6f0789a0601dabebde8380a0f0a7671b5"
+  },
+  {
+    "id": "desktop_computer",
+    "name": "Desktop computer",
+    "label": "电脑 桌面",
+    "group": "科技与工具",
+    "source": "assets/Desktop computer/Flat/desktop_computer_flat.svg",
+    "sha256": "85c27f4de051ce1cac4f19cb73d673b1f9728f6901c7616540e582f82cb68d67"
+  },
+  {
+    "id": "keyboard",
+    "name": "Keyboard",
+    "label": "键盘",
+    "group": "科技与工具",
+    "source": "assets/Keyboard/Flat/keyboard_flat.svg",
+    "sha256": "21eb6065c35f9c0fb84180f15b3244a27192d5f56b570257a6ed48bb2394f244"
+  },
+  {
+    "id": "computer_mouse",
+    "name": "Computer mouse",
+    "label": "鼠标",
+    "group": "科技与工具",
+    "source": "assets/Computer mouse/Flat/computer_mouse_flat.svg",
+    "sha256": "450a66a5136e6d8cdf5ec17f579053510ae84bd21da97790fa6cebc61ed7e812"
+  },
+  {
+    "id": "mobile_phone",
+    "name": "Mobile phone",
+    "label": "手机",
+    "group": "科技与工具",
+    "source": "assets/Mobile phone/Flat/mobile_phone_flat.svg",
+    "sha256": "46d491e10b70419637c10823d55a5af38f504a8e0e1d0f6ac4ff44de80b12e05"
+  },
+  {
+    "id": "robot",
+    "name": "Robot",
+    "label": "机器人 AI",
+    "group": "科技与工具",
+    "source": "assets/Robot/Flat/robot_flat.svg",
+    "sha256": "5bf295c5a8c7c4197c8deb639c13b93359ad009585c1ff6b3fd0fbdcf6f8da20"
+  },
+  {
+    "id": "gear",
+    "name": "Gear",
+    "label": "齿轮 设置",
+    "group": "科技与工具",
+    "source": "assets/Gear/Flat/gear_flat.svg",
+    "sha256": "373aa26b6d217bd2db4418e2b883ebf15640ebaa3f942a47723a37ab0f774495"
+  },
+  {
+    "id": "toolbox",
+    "name": "Toolbox",
+    "label": "工具箱",
+    "group": "科技与工具",
+    "source": "assets/Toolbox/Flat/toolbox_flat.svg",
+    "sha256": "2892634de7211f3e2809a33205281028f2c8fd7e6fda135e683d0825070867c2"
+  },
+  {
+    "id": "hammer_and_wrench",
+    "name": "Hammer and wrench",
+    "label": "锤子 扳手 工具",
+    "group": "科技与工具",
+    "source": "assets/Hammer and wrench/Flat/hammer_and_wrench_flat.svg",
+    "sha256": "a478475656fe852afbcb47831d3b69212631454925ca69a7afd30bc9b5846260"
+  },
+  {
+    "id": "wrench",
+    "name": "Wrench",
+    "label": "扳手 修理",
+    "group": "科技与工具",
+    "source": "assets/Wrench/Flat/wrench_flat.svg",
+    "sha256": "bf72f7cd17e82492ea669cdf9d23f06e6009afb391c4dad55b3c493fcae4f840"
+  },
+  {
+    "id": "light_bulb",
+    "name": "Light bulb",
+    "label": "灯泡 想法 灵感",
+    "group": "科技与工具",
+    "source": "assets/Light bulb/Flat/light_bulb_flat.svg",
+    "sha256": "3e746a9b94051287b263e518e1f156cbfbffb45b5e0a6db6570b99d4c8c56484"
+  },
+  {
+    "id": "magnifying_glass_tilted_left",
+    "name": "Magnifying glass tilted left",
+    "label": "放大镜 搜索 研究",
+    "group": "科技与工具",
+    "source": "assets/Magnifying glass tilted left/Flat/magnifying_glass_tilted_left_flat.svg",
+    "sha256": "cf4a65dfcb94629dba30c3df32077fe35c500b2d5609b08d9fc1532e016952bb"
+  },
+  {
+    "id": "microscope",
+    "name": "Microscope",
+    "label": "显微镜 科学",
+    "group": "科技与工具",
+    "source": "assets/Microscope/Flat/microscope_flat.svg",
+    "sha256": "600554164fd9b06b59670ba169c368ab2ab56b87e3fc2de7ff820aab9e985ff5"
+  },
+  {
+    "id": "telescope",
+    "name": "Telescope",
+    "label": "望远镜 天文",
+    "group": "科技与工具",
+    "source": "assets/Telescope/Flat/telescope_flat.svg",
+    "sha256": "e43e1a8ced1b03e69e213f6a791f52c1b46b82350f8b4490b82d42bbb655f600"
+  },
+  {
+    "id": "test_tube",
+    "name": "Test tube",
+    "label": "试管 实验",
+    "group": "科技与工具",
+    "source": "assets/Test tube/Flat/test_tube_flat.svg",
+    "sha256": "307adc05b618900dc1ab38e8e8f3276d54e17e8549df51db610692c9246357dd"
+  },
+  {
+    "id": "dna",
+    "name": "Dna",
+    "label": "基因 生物",
+    "group": "科技与工具",
+    "source": "assets/Dna/Flat/dna_flat.svg",
+    "sha256": "9d3003bfa43e89ca7f066fc83ca35100f9eb03675389dbf40cdea7ca8b361735"
+  },
+  {
+    "id": "brain",
+    "name": "Brain",
+    "label": "大脑 思考 知识",
+    "group": "科技与工具",
+    "source": "assets/Brain/Flat/brain_flat.svg",
+    "sha256": "6265573ae0b28db8fc53ba15f886ec9dca72c6345d4c304852db5f4d36876d46"
+  },
+  {
+    "id": "magnet",
+    "name": "Magnet",
+    "label": "磁铁",
+    "group": "科技与工具",
+    "source": "assets/Magnet/Flat/magnet_flat.svg",
+    "sha256": "2f5f7e822d6a33d5399e91615dfab6a7a6495a062cc95a910f1a17cc56d41405"
+  },
+  {
+    "id": "battery",
+    "name": "Battery",
+    "label": "电池 能量",
+    "group": "科技与工具",
+    "source": "assets/Battery/Flat/battery_flat.svg",
+    "sha256": "b4bd8ca9944092a3e50979810942b203f406c55fa9315811d83ffb65396c4ac7"
+  },
+  {
+    "id": "electric_plug",
+    "name": "Electric plug",
+    "label": "插头",
+    "group": "科技与工具",
+    "source": "assets/Electric plug/Flat/electric_plug_flat.svg",
+    "sha256": "18f96c4dac913737ef6acfb6b612952116a264a8bb973009c12fc2a3bc73109a"
+  },
+  {
+    "id": "satellite",
+    "name": "Satellite",
+    "label": "卫星",
+    "group": "科技与工具",
+    "source": "assets/Satellite/Flat/satellite_flat.svg",
+    "sha256": "276ba3adbb20b9f28e927c45d1dad2f2cd9a5d0edd5727fe385ffc91810138b0"
+  },
+  {
+    "id": "rocket",
+    "name": "Rocket",
+    "label": "火箭 发布",
+    "group": "科技与工具",
+    "source": "assets/Rocket/Flat/rocket_flat.svg",
+    "sha256": "ea9423e32494b81bbdccc8970987d9fe2a85462610cd4b8ddd0b9e1a03fb2ebf"
+  },
+  {
+    "id": "key",
+    "name": "Key",
+    "label": "钥匙",
+    "group": "科技与工具",
+    "source": "assets/Key/Flat/key_flat.svg",
+    "sha256": "a526faedcffc7f460053eabc25ac617404009d1536f1f7b172f1dc46b11dd4d1"
+  },
+  {
+    "id": "locked",
+    "name": "Locked",
+    "label": "锁 安全",
+    "group": "科技与工具",
+    "source": "assets/Locked/Flat/locked_flat.svg",
+    "sha256": "a3042ba561a791bf2a4ad820e82e557374962c771e39eeb93d2963478e5b57b8"
+  },
+  {
+    "id": "shield",
+    "name": "Shield",
+    "label": "盾牌 保护",
+    "group": "科技与工具",
+    "source": "assets/Shield/Flat/shield_flat.svg",
+    "sha256": "838b7367c59cc96bfcbdc4adafb98e2886a6e397aaae1bc751edd91127539bd0"
+  },
+  {
+    "id": "link",
+    "name": "Link",
+    "label": "链接",
+    "group": "科技与工具",
+    "source": "assets/Link/Flat/link_flat.svg",
+    "sha256": "66f510ee3e12564b79cbefc037004d4f5ac3c77dc6d2adae8e40f30129cb6d81"
+  },
+  {
+    "id": "house",
+    "name": "House",
+    "label": "房子 家",
+    "group": "生活与旅行",
+    "source": "assets/House/Flat/house_flat.svg",
+    "sha256": "9fe2c5d0c32e5414252b6bf919cb53f65849094431e4305660ace13549e7f4a7"
+  },
+  {
+    "id": "house_with_garden",
+    "name": "House with garden",
+    "label": "花园 房屋",
+    "group": "生活与旅行",
+    "source": "assets/House with garden/Flat/house_with_garden_flat.svg",
+    "sha256": "c85fbcf533bbd3d4e708aa502fa10022ff5cb05b59d36e0d1bee8792de66971a"
+  },
+  {
+    "id": "office_building",
+    "name": "Office building",
+    "label": "办公楼",
+    "group": "生活与旅行",
+    "source": "assets/Office building/Flat/office_building_flat.svg",
+    "sha256": "6765760106520386c371f9746e7c8de31fd8fa7017bf31e0d349f752d5ca26b3"
+  },
+  {
+    "id": "cityscape",
+    "name": "Cityscape",
+    "label": "城市",
+    "group": "生活与旅行",
+    "source": "assets/Cityscape/Flat/cityscape_flat.svg",
+    "sha256": "447aef56dbdb2bf9de67d2512ce0a7442514ba6c097e40429b734c920cac4098"
+  },
+  {
+    "id": "tractor",
+    "name": "Tractor",
+    "label": "拖拉机 生活",
+    "group": "生活与旅行",
+    "source": "assets/Tractor/Flat/tractor_flat.svg",
+    "sha256": "3bd7b847907d839c3b37653b468ee545f52983edff4e467f6badd6ee95119065"
+  },
+  {
+    "id": "automobile",
+    "name": "Automobile",
+    "label": "汽车",
+    "group": "生活与旅行",
+    "source": "assets/Automobile/Flat/automobile_flat.svg",
+    "sha256": "1d12961ada570f692b9ce495a9c531b0d56edcf1136be5823bb7bd8a3112907c"
+  },
+  {
+    "id": "bicycle",
+    "name": "Bicycle",
+    "label": "自行车",
+    "group": "生活与旅行",
+    "source": "assets/Bicycle/Flat/bicycle_flat.svg",
+    "sha256": "0241c712d2ea30a7ab0253422f94f1687838f6312a7a628f6d9c8da509faadf9"
+  },
+  {
+    "id": "train",
+    "name": "Train",
+    "label": "火车",
+    "group": "生活与旅行",
+    "source": "assets/Train/Flat/train_flat.svg",
+    "sha256": "33f7bc287b8d856118ed572a96746e4d1f96374a96a925081ba37f0b9b795f84"
+  },
+  {
+    "id": "airplane",
+    "name": "Airplane",
+    "label": "飞机 旅行",
+    "group": "生活与旅行",
+    "source": "assets/Airplane/Flat/airplane_flat.svg",
+    "sha256": "712be925e9ba02fa9dfa86d2b8e53a0a7205b5dfb5bfd9322a53ed2a99fe9013"
+  },
+  {
+    "id": "sailboat",
+    "name": "Sailboat",
+    "label": "帆船",
+    "group": "生活与旅行",
+    "source": "assets/Sailboat/Flat/sailboat_flat.svg",
+    "sha256": "e80a311ad9504c1a8b754c295b6279e6d54c7c28437835b09d1ed33697241c03"
+  },
+  {
+    "id": "luggage",
+    "name": "Luggage",
+    "label": "行李箱 旅行",
+    "group": "生活与旅行",
+    "source": "assets/Luggage/Flat/luggage_flat.svg",
+    "sha256": "6dd37128a0f980ba0c7301b066ec0d34fbf26271a7ee5dd6f5d4b9bc1774b6f7"
+  },
+  {
+    "id": "backpack",
+    "name": "Backpack",
+    "label": "背包",
+    "group": "生活与旅行",
+    "source": "assets/Backpack/Flat/backpack_flat.svg",
+    "sha256": "9a3ea2d79e670de01c0f6e742b80d5b679c172edc4532c08a7c3083d703b4f23"
+  },
+  {
+    "id": "world_map",
+    "name": "World map",
+    "label": "世界地图",
+    "group": "生活与旅行",
+    "source": "assets/World map/Flat/world_map_flat.svg",
+    "sha256": "dcb7208079a961893aac6700bac2cdcb069e30d787ff91cb865c8cb5f7209eea"
+  },
+  {
+    "id": "compass",
+    "name": "Compass",
+    "label": "指南针 方向",
+    "group": "生活与旅行",
+    "source": "assets/Compass/Flat/compass_flat.svg",
+    "sha256": "92e69670a742d2a9dc5cb30da349e261d959780981a9a52305676b9599698dd6"
+  },
+  {
+    "id": "globe_showing_asia-australia",
+    "name": "Globe showing asia-australia",
+    "label": "地球 亚洲",
+    "group": "生活与旅行",
+    "source": "assets/Globe showing asia-australia/Flat/globe_showing_asia-australia_flat.svg",
+    "sha256": "c0a79f88765c467b87edc3a7990e6423abc197ab1510e3c19f6179d96a1fb5ff"
+  },
+  {
+    "id": "beach_with_umbrella",
+    "name": "Beach with umbrella",
+    "label": "海滩 度假",
+    "group": "生活与旅行",
+    "source": "assets/Beach with umbrella/Flat/beach_with_umbrella_flat.svg",
+    "sha256": "cebb26bceb7e6224e43518e43b06f2abd93547d0df0f625a4298a56741fde43e"
+  },
+  {
+    "id": "camping",
+    "name": "Camping",
+    "label": "露营",
+    "group": "生活与旅行",
+    "source": "assets/Camping/Flat/camping_flat.svg",
+    "sha256": "2b327fcd35819612aa424162a305199a547951730fcfe8017ed799829f7c38de"
+  },
+  {
+    "id": "tent",
+    "name": "Tent",
+    "label": "帐篷",
+    "group": "生活与旅行",
+    "source": "assets/Tent/Flat/tent_flat.svg",
+    "sha256": "230a747c17431c13c17295b541612edec7b01ec35664df31ee2a61c6c0c8ec3f"
+  },
+  {
+    "id": "shopping_cart",
+    "name": "Shopping cart",
+    "label": "购物车 购物",
+    "group": "生活与旅行",
+    "source": "assets/Shopping cart/Flat/shopping_cart_flat.svg",
+    "sha256": "eb3ccc40394a1e9b0a550e3ebaf238941d72db849ae3c75151829dba664d3896"
+  },
+  {
+    "id": "bed",
+    "name": "Bed",
+    "label": "床 睡眠",
+    "group": "生活与旅行",
+    "source": "assets/Bed/Flat/bed_flat.svg",
+    "sha256": "80fecebffc4efb24e8b83033d27d601969eac3edc6cc9a2a197c98b095aab0d3"
+  },
+  {
+    "id": "alarm_clock",
+    "name": "Alarm clock",
+    "label": "闹钟 提醒",
+    "group": "生活与旅行",
+    "source": "assets/Alarm clock/Flat/alarm_clock_flat.svg",
+    "sha256": "e5356b8830074a3ca21fff8bb74807003ce996645341d46c25e26e06f0385d3b"
+  },
+  {
+    "id": "stopwatch",
+    "name": "Stopwatch",
+    "label": "秒表 时间",
+    "group": "生活与旅行",
+    "source": "assets/Stopwatch/Flat/stopwatch_flat.svg",
+    "sha256": "03b819a4446c972580f540caea53a540e05db5d730d44d7dbad30af2c4bbeec8"
+  },
+  {
+    "id": "hourglass_not_done",
+    "name": "Hourglass not done",
+    "label": "沙漏",
+    "group": "生活与旅行",
+    "source": "assets/Hourglass not done/Flat/hourglass_not_done_flat.svg",
+    "sha256": "111b05a30ae7cc4e4e09d6a2f46941b48eeb2c97b72ba8b0e37ef88e010401ae"
+  },
+  {
+    "id": "hot_beverage",
+    "name": "Hot beverage",
+    "label": "咖啡 热饮",
+    "group": "生活与旅行",
+    "source": "assets/Hot beverage/Flat/hot_beverage_flat.svg",
+    "sha256": "1fd0ed706ba85841193fffc9d2382c533486e41f7d1b9ec90d8eb6748c397183"
+  },
+  {
+    "id": "teapot",
+    "name": "Teapot",
+    "label": "茶壶",
+    "group": "生活与旅行",
+    "source": "assets/Teapot/Flat/teapot_flat.svg",
+    "sha256": "361686ee042ae1f473385551b3598fc562c400b1a587d1f5e1d48cb48c469009"
+  },
+  {
+    "id": "cooking",
+    "name": "Cooking",
+    "label": "烹饪 做饭",
+    "group": "生活与旅行",
+    "source": "assets/Cooking/Flat/cooking_flat.svg",
+    "sha256": "c091a89f0a40c42a11861309a16e03ad0dc0626790ec87621421fa55d2345d32"
+  },
+  {
+    "id": "red_apple",
+    "name": "Red apple",
+    "label": "苹果",
+    "group": "生活与旅行",
+    "source": "assets/Red apple/Flat/red_apple_flat.svg",
+    "sha256": "bc69f7c89a3621fb564482f9e13818019c6eac3a9d16fe996852514f3b19a073"
+  },
+  {
+    "id": "avocado",
+    "name": "Avocado",
+    "label": "牛油果",
+    "group": "生活与旅行",
+    "source": "assets/Avocado/Flat/avocado_flat.svg",
+    "sha256": "81e6bdde887deddceedbd538ecc14876ab0f3873406632bcd3fd365741efe434"
+  },
+  {
+    "id": "birthday_cake",
+    "name": "Birthday cake",
+    "label": "生日 蛋糕",
+    "group": "生活与旅行",
+    "source": "assets/Birthday cake/Flat/birthday_cake_flat.svg",
+    "sha256": "62409cda2ac2799bf4679d5fff502235fd43c0a2fa98e7905793f3b379e1eaaa"
+  },
+  {
+    "id": "seedling",
+    "name": "Seedling",
+    "label": "幼苗 成长",
+    "group": "自然与动物",
+    "source": "assets/Seedling/Flat/seedling_flat.svg",
+    "sha256": "69afa13809bd8192cb4599db991f7cedd3cea054efb5eb68f6f93d8bb19b3652"
+  },
+  {
+    "id": "evergreen_tree",
+    "name": "Evergreen tree",
+    "label": "常青树 树",
+    "group": "自然与动物",
+    "source": "assets/Evergreen tree/Flat/evergreen_tree_flat.svg",
+    "sha256": "2a36e6c3c46624ccd74a38f236cefc0cc0bd27e0c5bfca58b15242d34bad6820"
+  },
+  {
+    "id": "deciduous_tree",
+    "name": "Deciduous tree",
+    "label": "落叶树 树木",
+    "group": "自然与动物",
+    "source": "assets/Deciduous tree/Flat/deciduous_tree_flat.svg",
+    "sha256": "0dd734acc351486d31824d85d7aec4004e3392a00a44ca2f3129603f1d6a0040"
+  },
+  {
+    "id": "potted_plant",
+    "name": "Potted plant",
+    "label": "盆栽 植物",
+    "group": "自然与动物",
+    "source": "assets/Potted plant/Flat/potted_plant_flat.svg",
+    "sha256": "9305371ce7ffd696cee2a47746ead59c9f99fdabde7d9e4f0b6d91e4bcc17417"
+  },
+  {
+    "id": "cactus",
+    "name": "Cactus",
+    "label": "仙人掌",
+    "group": "自然与动物",
+    "source": "assets/Cactus/Flat/cactus_flat.svg",
+    "sha256": "ca0a29dfc8d0beae5771012d99822bc3a67e2521987260d7b3613b6c3487bb3c"
+  },
+  {
+    "id": "four_leaf_clover",
+    "name": "Four leaf clover",
+    "label": "四叶草 幸运",
+    "group": "自然与动物",
+    "source": "assets/Four leaf clover/Flat/four_leaf_clover_flat.svg",
+    "sha256": "36744bdfb2a2668c3610e57123a9fc48de57886b59a92f5b10282e97675add23"
+  },
+  {
+    "id": "cherry_blossom",
+    "name": "Cherry blossom",
+    "label": "樱花",
+    "group": "自然与动物",
+    "source": "assets/Cherry blossom/Flat/cherry_blossom_flat.svg",
+    "sha256": "eb1ec221824f85581b5dc685e2a8d31bf9f6113c08d0940ee361234173336e62"
+  },
+  {
+    "id": "sunflower",
+    "name": "Sunflower",
+    "label": "向日葵",
+    "group": "自然与动物",
+    "source": "assets/Sunflower/Flat/sunflower_flat.svg",
+    "sha256": "af0f5db9816f1545121d2d4c80a145e8809d50830f8516fd99a631bca7702ea6"
+  },
+  {
+    "id": "tulip",
+    "name": "Tulip",
+    "label": "郁金香",
+    "group": "自然与动物",
+    "source": "assets/Tulip/Flat/tulip_flat.svg",
+    "sha256": "4709c1f256ba1620a24ec72e957f3132915759167683c6f723a7d412850fff48"
+  },
+  {
+    "id": "rose",
+    "name": "Rose",
+    "label": "玫瑰",
+    "group": "自然与动物",
+    "source": "assets/Rose/Flat/rose_flat.svg",
+    "sha256": "c640522a56700a7bbb97ac6a3ac33c115976ae985298afa964bf81dff6188b9d"
+  },
+  {
+    "id": "mountain",
+    "name": "Mountain",
+    "label": "山",
+    "group": "自然与动物",
+    "source": "assets/Mountain/Flat/mountain_flat.svg",
+    "sha256": "c80aa9f24f53bae91a2df7ce8b319c68aa3766015bd4f30f8de1da4b552e69a0"
+  },
+  {
+    "id": "sun",
+    "name": "Sun",
+    "label": "太阳",
+    "group": "自然与动物",
+    "source": "assets/Sun/Flat/sun_flat.svg",
+    "sha256": "a51d98e68ac038b917584d43b7729174f035a94ed7cd694802a3a7160f0b08f2"
+  },
+  {
+    "id": "crescent_moon",
+    "name": "Crescent moon",
+    "label": "月亮",
+    "group": "自然与动物",
+    "source": "assets/Crescent moon/Flat/crescent_moon_flat.svg",
+    "sha256": "d749d4a9c2917cf5d13193d214898c4173371a9037aa92874f034e27b77ad540"
+  },
+  {
+    "id": "cloud",
+    "name": "Cloud",
+    "label": "云",
+    "group": "自然与动物",
+    "source": "assets/Cloud/Flat/cloud_flat.svg",
+    "sha256": "b679020aa5321149bad0a7f4dd0f0362a570a1ba1e3ddfeccac94064c4e87955"
+  },
+  {
+    "id": "rainbow",
+    "name": "Rainbow",
+    "label": "彩虹",
+    "group": "自然与动物",
+    "source": "assets/Rainbow/Flat/rainbow_flat.svg",
+    "sha256": "85a0bee875fa032375f0448ac5ed89bf5fa8662438dbb539abbfcba118c18c74"
+  },
+  {
+    "id": "snowflake",
+    "name": "Snowflake",
+    "label": "雪花",
+    "group": "自然与动物",
+    "source": "assets/Snowflake/Flat/snowflake_flat.svg",
+    "sha256": "bbe0ff7fbfbd17f02d26aa59d4f961c6470af1cff9474047b7b031a81c4915ab"
+  },
+  {
+    "id": "fire",
+    "name": "Fire",
+    "label": "火 热情",
+    "group": "自然与动物",
+    "source": "assets/Fire/Flat/fire_flat.svg",
+    "sha256": "00184d516421223782fc5efd67af64641ee8044af9613a3674ce5899cd38583d"
+  },
+  {
+    "id": "water_wave",
+    "name": "Water wave",
+    "label": "海浪 水",
+    "group": "自然与动物",
+    "source": "assets/Water wave/Flat/water_wave_flat.svg",
+    "sha256": "8bd8b1e0d8e7f58571ffe1ce09135d9715c0b26a77ce0bf19f55c354823ddf7f"
+  },
+  {
+    "id": "cat",
+    "name": "Cat",
+    "label": "猫",
+    "group": "自然与动物",
+    "source": "assets/Cat/Flat/cat_flat.svg",
+    "sha256": "59f5401062509f4d0fb310817ce9a9656724c6c924a4d42f2a33ac6bb0964602"
+  },
+  {
+    "id": "dog",
+    "name": "Dog",
+    "label": "狗",
+    "group": "自然与动物",
+    "source": "assets/Dog/Flat/dog_flat.svg",
+    "sha256": "e3ee366f39d9f47bbb5a6dc22a521dbea32f05f2216d0665a551b134ca2474da"
+  },
+  {
+    "id": "rabbit",
+    "name": "Rabbit",
+    "label": "兔子",
+    "group": "自然与动物",
+    "source": "assets/Rabbit/Flat/rabbit_flat.svg",
+    "sha256": "e78f7552298062c599bd7290ff52bad25de352477a9475e34332c52eafe2c5d7"
+  },
+  {
+    "id": "fox",
+    "name": "Fox",
+    "label": "狐狸",
+    "group": "自然与动物",
+    "source": "assets/Fox/Flat/fox_flat.svg",
+    "sha256": "05992c69f46f9a8ef14e7a95894baa3168f4c195d8d3de3f3a09ce82d68bffc9"
+  },
+  {
+    "id": "panda",
+    "name": "Panda",
+    "label": "熊猫",
+    "group": "自然与动物",
+    "source": "assets/Panda/Flat/panda_flat.svg",
+    "sha256": "c713e668dbdb6cd53ead805cd968b839ed706dc5ebe40f68d02e89879f2b9996"
+  },
+  {
+    "id": "penguin",
+    "name": "Penguin",
+    "label": "企鹅",
+    "group": "自然与动物",
+    "source": "assets/Penguin/Flat/penguin_flat.svg",
+    "sha256": "7b48f396877956d5b0a32066ef7faf17eeb928bfe70edd7fe4b7a1e76284d425"
+  },
+  {
+    "id": "owl",
+    "name": "Owl",
+    "label": "猫头鹰",
+    "group": "自然与动物",
+    "source": "assets/Owl/Flat/owl_flat.svg",
+    "sha256": "443a589d5c8ac73bb60deb4350570e25d21cad33a1e189d2e195aaab14856873"
+  },
+  {
+    "id": "butterfly",
+    "name": "Butterfly",
+    "label": "蝴蝶",
+    "group": "自然与动物",
+    "source": "assets/Butterfly/Flat/butterfly_flat.svg",
+    "sha256": "118a7aee6fb3360fef0dcf86aeaac8e022c35c3f52529145750155a8893f50fc"
+  },
+  {
+    "id": "honeybee",
+    "name": "Honeybee",
+    "label": "蜜蜂",
+    "group": "自然与动物",
+    "source": "assets/Honeybee/Flat/honeybee_flat.svg",
+    "sha256": "bb82291c1870bcc05fb694c0f0a4dc63ca0c593fc12e7edd17fc32264ae8d9d5"
+  },
+  {
+    "id": "turtle",
+    "name": "Turtle",
+    "label": "乌龟",
+    "group": "自然与动物",
+    "source": "assets/Turtle/Flat/turtle_flat.svg",
+    "sha256": "91215c4ddf01d1ae49b4e987ef4ce007a30ddae8818e40b7c6e2991c12ace35d"
+  },
+  {
+    "id": "whale",
+    "name": "Whale",
+    "label": "鲸鱼",
+    "group": "自然与动物",
+    "source": "assets/Whale/Flat/whale_flat.svg",
+    "sha256": "bb31a1f4ff478bb4838a3404de66678a8bee61e62d96f31218e4cf98b0104fb8"
+  },
+  {
+    "id": "artist_palette",
+    "name": "Artist palette",
+    "label": "调色盘 艺术 设计",
+    "group": "兴趣与标记",
+    "source": "assets/Artist palette/Flat/artist_palette_flat.svg",
+    "sha256": "046b147ae3b378bb7e19358d2a0036cd6a6e79b721481445538dc34333fd4a49"
+  },
+  {
+    "id": "paintbrush",
+    "name": "Paintbrush",
+    "label": "画笔",
+    "group": "兴趣与标记",
+    "source": "assets/Paintbrush/Flat/paintbrush_flat.svg",
+    "sha256": "78757c4c943e8e05cf3485d017b172ebc622d1e5f70e5ab6371a28f97102770d"
+  },
+  {
+    "id": "camera",
+    "name": "Camera",
+    "label": "相机 摄影",
+    "group": "兴趣与标记",
+    "source": "assets/Camera/Flat/camera_flat.svg",
+    "sha256": "d11a0099285986ed3737a4e6389d4afc229749482cd9f22bfd2d2d35cf79e02c"
+  },
+  {
+    "id": "clapper_board",
+    "name": "Clapper board",
+    "label": "场记板 电影",
+    "group": "兴趣与标记",
+    "source": "assets/Clapper board/Flat/clapper_board_flat.svg",
+    "sha256": "15354b0944510e3d9f4969d737b5ef8f88fd330a7be3803465c61bc434898660"
+  },
+  {
+    "id": "headphone",
+    "name": "Headphone",
+    "label": "耳机 音乐",
+    "group": "兴趣与标记",
+    "source": "assets/Headphone/Flat/headphone_flat.svg",
+    "sha256": "cda2447d8063692b29056d0cb1a2ea38a66d9f6ac787f380bc88c7b30735ca8a"
+  },
+  {
+    "id": "musical_note",
+    "name": "Musical note",
+    "label": "音符",
+    "group": "兴趣与标记",
+    "source": "assets/Musical note/Flat/musical_note_flat.svg",
+    "sha256": "889610f268faa48d8c258a55df4b837595d7e91e92bc3695d0603beff12643a9"
+  },
+  {
+    "id": "guitar",
+    "name": "Guitar",
+    "label": "吉他",
+    "group": "兴趣与标记",
+    "source": "assets/Guitar/Flat/guitar_flat.svg",
+    "sha256": "f02523439d0f910c533c21aa1f93b89a1c809a310b5b385ef966643225c4ccf8"
+  },
+  {
+    "id": "musical_keyboard",
+    "name": "Musical keyboard",
+    "label": "钢琴",
+    "group": "兴趣与标记",
+    "source": "assets/Musical keyboard/Flat/musical_keyboard_flat.svg",
+    "sha256": "f863f70361fd7512352fe353173282e5578a29d614d46fb3d035656c17773478"
+  },
+  {
+    "id": "video_game",
+    "name": "Video game",
+    "label": "游戏",
+    "group": "兴趣与标记",
+    "source": "assets/Video game/Flat/video_game_flat.svg",
+    "sha256": "72e72f324aea8c19f4eac430d377be8a33b0c3fa12495d74e886625568b4af60"
+  },
+  {
+    "id": "puzzle_piece",
+    "name": "Puzzle piece",
+    "label": "拼图",
+    "group": "兴趣与标记",
+    "source": "assets/Puzzle piece/Flat/puzzle_piece_flat.svg",
+    "sha256": "72b3482570a4041ab8b77a54cf2b4e81fe78dab7c3b9ecb879a2921ab3711533"
+  },
+  {
+    "id": "soccer_ball",
+    "name": "Soccer ball",
+    "label": "足球",
+    "group": "兴趣与标记",
+    "source": "assets/Soccer ball/Flat/soccer_ball_flat.svg",
+    "sha256": "ca792d91995ac20dc37be0c1bd1f9f46d2f7ea4aea3bd4d0c69df1083bd641c9"
+  },
+  {
+    "id": "basketball",
+    "name": "Basketball",
+    "label": "篮球",
+    "group": "兴趣与标记",
+    "source": "assets/Basketball/Flat/basketball_flat.svg",
+    "sha256": "50735d09f42671499773bc4bd7d3fd2a2717205ceacdc5f8c5012abc586ecf65"
+  },
+  {
+    "id": "ping_pong",
+    "name": "Ping pong",
+    "label": "乒乓球",
+    "group": "兴趣与标记",
+    "source": "assets/Ping pong/Flat/ping_pong_flat.svg",
+    "sha256": "1dc851a4e92bf196fe021a6d5b8e27c2f5e8256dcdad94b27a59b945a764eb86"
+  },
+  {
+    "id": "tennis",
+    "name": "Tennis",
+    "label": "网球",
+    "group": "兴趣与标记",
+    "source": "assets/Tennis/Flat/tennis_flat.svg",
+    "sha256": "26ca7fd42382005af1e540f3f1ef4120af5c898e3ff75c7776ff95b81fd6cc42"
+  },
+  {
+    "id": "running_shoe",
+    "name": "Running shoe",
+    "label": "跑鞋 运动",
+    "group": "兴趣与标记",
+    "source": "assets/Running shoe/Flat/running_shoe_flat.svg",
+    "sha256": "0b171e09195a6d146aea23e1628448d418b051a4f436ce2a03d3bc8e908bdacb"
+  },
+  {
+    "id": "trophy",
+    "name": "Trophy",
+    "label": "奖杯 成就",
+    "group": "兴趣与标记",
+    "source": "assets/Trophy/Flat/trophy_flat.svg",
+    "sha256": "088c6305e4c6551dd64e3aff880aa36c399b9867facb81972c431cfaf5d4bab8"
+  },
+  {
+    "id": "bullseye",
+    "name": "Bullseye",
+    "label": "靶心 目标",
+    "group": "兴趣与标记",
+    "source": "assets/Bullseye/Flat/bullseye_flat.svg",
+    "sha256": "900e8499bc4fb16ecd606d60f6cee4907aeccc0503d2679c5d22735a351b0d4e"
+  },
+  {
+    "id": "star",
+    "name": "Star",
+    "label": "星星 收藏",
+    "group": "兴趣与标记",
+    "source": "assets/Star/Flat/star_flat.svg",
+    "sha256": "47b4772001147be3920d3471e9c1ac2024ca739b384f414ac37cf95a59a07bfa"
+  },
+  {
+    "id": "sparkles",
+    "name": "Sparkles",
+    "label": "闪光 灵感",
+    "group": "兴趣与标记",
+    "source": "assets/Sparkles/Flat/sparkles_flat.svg",
+    "sha256": "d5802877677464187a510c3fbb9d8c272dea164bcca2bf6a2270944e6cd2324e"
+  },
+  {
+    "id": "red_heart",
+    "name": "Red heart",
+    "label": "红心 喜爱",
+    "group": "兴趣与标记",
+    "source": "assets/Red heart/Flat/red_heart_flat.svg",
+    "sha256": "61846b9c946736481d65dbf244fe53792d06d50405c2d5f3e40a0a06cbfe5317"
+  },
+  {
+    "id": "blue_heart",
+    "name": "Blue heart",
+    "label": "蓝心",
+    "group": "兴趣与标记",
+    "source": "assets/Blue heart/Flat/blue_heart_flat.svg",
+    "sha256": "f5649d659e84a0ad0994a85e404d923707d03ce5c227507e2425f59de997cc82"
+  },
+  {
+    "id": "wrapped_gift",
+    "name": "Wrapped gift",
+    "label": "礼物",
+    "group": "兴趣与标记",
+    "source": "assets/Wrapped gift/Flat/wrapped_gift_flat.svg",
+    "sha256": "326da81790739066b77219b1a84dbcdb2efb4fddbf4d1767c7097c6ab9b7634b"
+  },
+  {
+    "id": "party_popper",
+    "name": "Party popper",
+    "label": "庆祝 礼花",
+    "group": "兴趣与标记",
+    "source": "assets/Party popper/Flat/party_popper_flat.svg",
+    "sha256": "8128c958bfc06568aa49d03cd001556a6c6223660f43c657d381e638416c51f6"
+  },
+  {
+    "id": "balloon",
+    "name": "Balloon",
+    "label": "气球",
+    "group": "兴趣与标记",
+    "source": "assets/Balloon/Flat/balloon_flat.svg",
+    "sha256": "5b7af328c99543aa940215cd82af39c6248c54d5f3b36260284364db63490e73"
+  },
+  {
+    "id": "check_mark_button",
+    "name": "Check mark button",
+    "label": "完成 对勾",
+    "group": "兴趣与标记",
+    "source": "assets/Check mark button/Flat/check_mark_button_flat.svg",
+    "sha256": "526d3efe42ac3ede81400c171c4a39722034ceb57f661923ef34bea0dcd68532"
+  },
+  {
+    "id": "warning",
+    "name": "Warning",
+    "label": "警告 注意",
+    "group": "兴趣与标记",
+    "source": "assets/Warning/Flat/warning_flat.svg",
+    "sha256": "f63f090b7af8c10290b15adc7c87c7d487f928e86b3bb7df34aabbc331484e80"
+  },
+  {
+    "id": "thinking_face",
+    "name": "Thinking face",
+    "label": "思考 表情",
+    "group": "兴趣与标记",
+    "source": "assets/Thinking face/Flat/thinking_face_flat.svg",
+    "sha256": "3026c4db7c56c913318d0526e774cd4f7feb5733f7fe9a2d3d5edc84d00bbe2d"
+  },
+  {
+    "id": "smiling_face_with_smiling_eyes",
+    "name": "Smiling face with smiling eyes",
+    "label": "微笑 开心",
+    "group": "兴趣与标记",
+    "source": "assets/Smiling face with smiling eyes/Flat/smiling_face_with_smiling_eyes_flat.svg",
+    "sha256": "4a429b15f9aa2831f2fe786923751b6d59b099fabff39a4e41003267629cda25"
+  }
+]
