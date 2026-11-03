@@ -54,7 +54,12 @@ func (a *app) pageBody(p *Page) Body {
 	return body
 }
 func (a *app) tabPickerPages() []*Page {
-	query := strings.ToLower(strings.TrimSpace(a.tabPicker.Query))
+	return a.matchingPages(a.tabPicker.Query)
+}
+
+// Both page choosers use live drafts and the same recent-visit order.
+func (a *app) matchingPages(query string) []*Page {
+	query = strings.ToLower(strings.TrimSpace(query))
 	var pages []*Page
 	for _, p := range a.pages {
 		if p.Deleted != "" {

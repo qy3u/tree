@@ -45,7 +45,7 @@ func (a *app) view(c *ui.Context) {
 		a.addPage(a.selected)
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyP) {
-		a.searchOpen = true
+		a.showSearch()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyS) {
 		a.report(a.flush())
@@ -76,7 +76,7 @@ func (a *app) sidebar(c *ui.Context) {
 		})
 		ui.Column(c).Padding(8, 8, 0, 8).Gap(2).Children(func() {
 			if sidebarAction(c, "search", "搜索", "搜索页面", "⌘P").Clicked() {
-				a.searchOpen = true
+				a.showSearch()
 			}
 			if sidebarAction(c, "plus", "新建页面", "新建页面", "").Clicked() {
 				a.addPage("")
@@ -311,40 +311,7 @@ func (a *app) dialogs(c *ui.Context) {
 			a.errorOpen = false
 		}
 	})
-	ui.DialogBase(c, &a.searchOpen, func(backdrop, panel ui.Element) {
-		backdrop.Background(ui.RGBA(0, 0, 0, 0.25))
-		panel.Width(600).Height(440).Padding(20).Gap(12).Radius(9).Background(paper)
-		ui.TextInput(c, &a.query).Label("搜索关键词").Placeholder("搜索页面标题与正文…").AutoFocus()
-		ui.Scroll(c).Grow(1).Children(func() {
-			count := 0
-			query := strings.ToLower(strings.TrimSpace(a.query))
-			for _, p := range a.pages {
-				if p.Deleted != "" {
-					continue
-				}
-				body := p.Body
-				if d := a.drafts[p.ID]; d != nil {
-					body.Text = d.doc.Text()
-				}
-				if query != "" && !strings.Contains(strings.ToLower(p.Title+" "+body.PlainText()), query) {
-					continue
-				}
-				count++
-				if quietButton(c.Key("result:"+p.ID), "").Label("搜索结果：" + pageTitle(p)).Children(func() {
-					ui.Column(c).Gap(4).Children(func() {
-						ui.Text(c, pageTitle(p)).FontSize(14)
-						ui.Text(c, a.pagePath(p)).FontSize(11).TextColor(muted).SingleLine()
-						ui.Text(c, matchSnippet(body.PlainText(), query)).FontSize(12).TextColor(muted).MaxWidth(520).SingleLine()
-					})
-				}).Clicked() {
-					a.openSearchResult(p.ID, query)
-				}
-			}
-			if count == 0 {
-				ui.Text(c, "没有找到匹配的页面").TextColor(muted)
-			}
-		})
-	})
+	a.searchDialog(c)
 	ui.Modal(c, &a.linkOpen, func() {
 		ui.Text(c, "编辑链接").Bold()
 		ui.TextInput(c, &a.linkURL).Label("链接地址").Placeholder("https://…").Width(360).AutoFocus()

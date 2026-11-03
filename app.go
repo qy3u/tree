@@ -47,6 +47,8 @@ type app struct {
 	status, failure                           string
 	errorOpen                                 bool
 	searchOpen                                bool
+	searchSelection                           int
+	searchPointerX, searchPointerY            float32
 	query                                     string
 	trashOpen, moveOpen, pageMenu, insertOpen bool
 	linkOpen                                  bool

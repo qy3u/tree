@@ -207,7 +207,7 @@ func (a *app) newTabView(c *ui.Context) {
 		ui.Column(c).MaxWidth(600).Gap(8).Children(func() {
 			ui.Text(c, "新标签页").FontSize(28).Bold().Margin(0, 0, 20, 0)
 			if sidebarAction(c, "search", "搜索页面", "标签页搜索", "⌘P").Clicked() {
-				a.searchOpen = true
+				a.showSearch()
 			}
 			if sidebarAction(c, "plus", "新建页面", "标签页新建页面", "⌘N").Clicked() {
 				a.addPage("")
