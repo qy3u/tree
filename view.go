@@ -55,6 +55,10 @@ func (a *app) view(c *ui.Context) {
 		ui.Box(c).Width(1).Background(line)
 		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 			a.tabBar(c)
+			if a.selected == libraryRoute {
+				a.libraryView(c)
+				return
+			}
 			d := a.current()
 			if d == nil {
 				a.newTabView(c)
@@ -77,6 +81,13 @@ func (a *app) sidebar(c *ui.Context) {
 		ui.Column(c).Padding(8, 8, 0, 8).Gap(2).Children(func() {
 			if sidebarAction(c, "search", "搜索", "搜索页面", "⌘P").Clicked() {
 				a.showSearch()
+			}
+			library := sidebarAction(c, "library", "Library", "打开 Library", "")
+			if a.selected == libraryRoute {
+				library.Background(line)
+			}
+			if library.Clicked() {
+				a.selectPage(libraryRoute)
 			}
 			if sidebarAction(c, "plus", "新建页面", "新建页面", "").Clicked() {
 				a.addPage("")
@@ -220,6 +231,7 @@ func (a *app) header(c *ui.Context, d *draft) {
 			}
 		}
 		ui.Box(c).Grow(1)
+		a.favoriteButton(c, d.page.ID)
 		insert := iconButton(c, "plus", "插入内容").KeepFocus()
 		if insert.Clicked() {
 			a.insertOpen = !a.insertOpen

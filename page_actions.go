@@ -6,6 +6,9 @@ import (
 )
 
 func (a *app) pageActions(m *ui.Menu, id string) {
+	if m.Item(a.favoriteLabel(id)).Chosen() {
+		a.toggleFavorite(id)
+	}
 	if m.Item("在新标签页中打开").Chosen() {
 		a.openTab(id)
 	}

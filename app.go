@@ -33,6 +33,8 @@ type app struct {
 	codeMenu                                  codeLanguageMenu
 	tabPicker                                 tabPickerState
 	visited                                   map[string]time.Time
+	favorites                                 map[string]time.Time
+	libraryFavorites                          bool
 	focusTitlePage                            string
 	store                                     *Store
 	pages                                     []*Page
@@ -91,6 +93,8 @@ func newApp(s *Store) (*app, error) {
 		}
 	}
 	a.restoreTabs()
+	a.loadFavorites()
+	a.recordVisit(a.selected)
 	a.expandAncestors(a.selected)
 	return a, nil
 }
@@ -208,7 +212,7 @@ func (a *app) flush() error {
 	return nil
 }
 func (a *app) selectPage(id string) {
-	if p := a.find(id); p == nil || p.Deleted != "" {
+	if p := a.find(id); id != libraryRoute && (p == nil || p.Deleted != "") {
 		return
 	}
 	if err := a.flush(); err != nil {
@@ -236,6 +240,9 @@ func (a *app) showPage(id string) {
 	a.expandAncestors(id)
 }
 func (a *app) addPage(parent string) {
+	if parent == libraryRoute {
+		parent = ""
+	}
 	if err := a.flush(); err != nil {
 		a.report(err)
 		return

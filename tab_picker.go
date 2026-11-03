@@ -27,7 +27,7 @@ func (a *app) loadVisits() {
 	}
 }
 func (a *app) recordVisit(id string) {
-	if id == "" {
+	if p := a.find(id); p == nil || p.Deleted != "" {
 		return
 	}
 	if a.visited == nil {

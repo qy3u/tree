@@ -45,7 +45,7 @@ func (a *app) pruneTabs() {
 		position := -1
 		var history []string
 		for j, id := range t.History {
-			if p := a.find(id); id != "" && (p == nil || p.Deleted != "") {
+			if p := a.find(id); id != "" && id != libraryRoute && (p == nil || p.Deleted != "") {
 				continue
 			}
 			history = append(history, id)
@@ -82,7 +82,7 @@ func (a *app) saveBeforeTabChange() bool {
 	return true
 }
 func (a *app) openTab(id string) {
-	if id != "" {
+	if id != "" && id != libraryRoute {
 		if p := a.find(id); p == nil || p.Deleted != "" {
 			return
 		}
@@ -155,6 +155,9 @@ func (a *app) tabBar(c *ui.Context) {
 			ui.Row(c).Height(height).Children(func() {
 				for i, t := range a.tabs {
 					label := "新标签页"
+					if t.page() == libraryRoute {
+						label = "Library"
+					}
 					if p := a.find(t.page()); p != nil {
 						label = pageTitle(p)
 					}
@@ -169,6 +172,9 @@ func (a *app) tabBar(c *ui.Context) {
 							color = ink
 						}
 						if quietButton(c.Key("select"), "").Label(fmt.Sprintf("切换标签页 %d：%s", i+1, label)).Grow(1).MinWidth(0).Height(height).Radius(0).Padding(0, 14).Gap(6).AlignItems(ui.Center).Children(func() {
+							if t.page() == libraryRoute {
+								ui.Icon(c, icons["library"]).FontSize(15).TextColor(muted)
+							}
 							if p := a.find(t.page()); p != nil && coloredPageIcon(p.Body.Icon) != nil {
 								pageIcon(c, p, 15)
 							}

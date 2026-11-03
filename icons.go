@@ -7,6 +7,10 @@ var icons = map[string]*ui.SVG{}
 
 func init() {
 	paths := map[string]string{
+		"library":      `<rect x="3" y="4" width="4" height="16" rx=".5"/><rect x="9" y="4" width="4" height="16" rx=".5"/><path d="m15 5 4-1 4 15-4 1z"/>`,
+		"clock":        `<circle cx="12" cy="12" r="9"/><path d="M12 6v6H7"/>`,
+		"star":         `<path d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2L3 9.6l6.2-.9z"/>`,
+		"star-filled":  `<path fill="currentColor" d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2L3 9.6l6.2-.9z"/>`,
 		"shuffle":      `<path d="M3 6h3l12 12h3M17 14l4 4-4 4M3 18h3l12-12h3M17 2l4 4-4 4"/>`,
 		"paragraph":    `<path d="M13 4H9a5 5 0 0 0 0 10h4M13 4v16M18 4v16M10 4h11"/>`,
 		"copy":         `<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/>`,
