@@ -105,12 +105,15 @@ func (a *app) closeTab(index int) {
 	if index < 0 || index >= len(a.tabs) || !a.saveBeforeTabChange() {
 		return
 	}
+	if len(a.tabs) == 1 {
+		// Keep the saved session intact for the next launch. Use the normal
+		// application lifecycle so quit/close hooks still run.
+		a.quit()
+		return
+	}
 	a.tabs = append(a.tabs[:index], a.tabs[index+1:]...)
 	if index < a.activeTab {
 		a.activeTab--
-	}
-	if len(a.tabs) == 0 {
-		a.tabs = []pageTab{{ID: newID(), History: []string{""}}}
 	}
 	a.activeTab = min(a.activeTab, len(a.tabs)-1)
 	a.showTab()
@@ -182,14 +185,15 @@ func (a *app) tabBar(c *ui.Context) {
 						}).Clicked() {
 							a.switchTab(i)
 						}
-						if len(a.tabs) > 1 {
-							close := iconButton(c.Key("close"), "close", fmt.Sprintf("关闭标签页 %d", i+1)).Size(22, 22).Padding(4).Margin(0, 5, 0, 0)
-							if !active && !tab.Hovered() {
-								close.Opacity(0)
-							}
-							if close.Clicked() {
-								a.closeTab(i)
-							}
+						close := iconButton(c.Key("close"), "close", fmt.Sprintf("关闭标签页 %d", i+1)).Size(22, 22).Padding(4).Margin(0, 5, 0, 0)
+						if len(a.tabs) == 1 {
+							close.Tooltip("退出 Tree")
+						}
+						if !active && !tab.Hovered() {
+							close.Opacity(0)
+						}
+						if close.Clicked() {
+							a.closeTab(i)
 						}
 						ui.Box(c).Width(1).Height(height).Background(line)
 						if !active {

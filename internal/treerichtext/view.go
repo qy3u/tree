@@ -31,6 +31,11 @@ type EditorOptions struct {
 	// Return true when handled, false to use its stored drawing/image.
 	DrawAttachment func(*ui.Painter, ui.Rect, Attributes) bool
 	BeforeKey      func(ui.Key, ui.Modifiers) bool
+	// OnTaskToggle lets the app coordinate checkbox clicks with timed tasks.
+	// Return false to use the normal checkbox behavior.
+	OnTaskToggle func(start int, at time.Time) bool
+	// ParagraphTrailingSpace reserves room for app-owned inline controls.
+	ParagraphTrailingSpace func(ParagraphStyle) float32
 
 	// Label names the editor to assistive technology; "Rich text" when
 	// empty.
@@ -423,13 +428,14 @@ func (v *view) paraFont(st ParagraphStyle) ui.Font {
 
 // lookKey is what of the look the layouts of paragraphs are made of.
 type lookKey struct {
-	base  ui.Font
-	theme Theme
-	tags  bool
+	base          ui.Font
+	theme         Theme
+	tags          bool
+	trailingSpace bool
 }
 
 func (v *view) lookKey() lookKey {
-	return lookKey{base: v.base, theme: v.look.Theme, tags: v.look.tagStyle != nil}
+	return lookKey{base: v.base, theme: v.look.Theme, tags: v.look.tagStyle != nil, trailingSpace: v.opts.ParagraphTrailingSpace != nil}
 }
 
 // heading returns the style of headings of level, from 1.
@@ -451,6 +457,9 @@ func (v *view) insets(st ParagraphStyle) (left, right float32) {
 	if st.CodeBlock {
 		left += look.size * look.CodeBlockPadding[0]
 		right += look.size * look.CodeBlockPadding[0]
+	}
+	if v.opts.ParagraphTrailingSpace != nil {
+		right += max(0, v.opts.ParagraphTrailingSpace(st))
 	}
 	return left, right
 }
@@ -532,7 +541,7 @@ func (look *look) span(text string, a Attributes, st ParagraphStyle) ui.Span {
 		}
 		s.Underline = true
 	}
-	if st.List == Tasks && st.Checked {
+	if st.List == Tasks && (st.Checked && !st.Timer.Enabled() || st.Timer.State == TimerTerminated) {
 		s.Strikethrough = true
 		if s.Color.A == 0 {
 			s.Color = look.Muted
@@ -876,6 +885,9 @@ type ParagraphBox struct {
 	// FirstLineCenter is the first text line's vertical center, in editor
 	// coordinates, for controls that must follow its actual font metrics.
 	FirstLineCenter float32
+	// TextEndX and LastLineCenter locate the end of the laid-out text,
+	// including wrapping and composition, in editor coordinates.
+	TextEndX, LastLineCenter float32
 }
 
 // VisibleParagraphs returns the paragraphs in view in the editor showing
@@ -910,10 +922,13 @@ func (d *Document) VisibleParagraphs() []ParagraphBox {
 func (v *view) boxes(out []ParagraphBox) []ParagraphBox {
 	for i := v.first; i <= v.last && i < len(v.paras); i++ {
 		pv := v.paraLayout(i)
-		_, y := v.origin(i)
+		x, y := v.origin(i)
 		top := v.padY + float32(y-v.scroll)
 		firstLine := pv.layout.CaretAt(ui.TextCaretPosition{})
-		out = append(out, ParagraphBox{Index: i, Start: v.shown.paraStart(i), Top: top, Height: pv.h - pv.space, FirstLineCenter: top + firstLine.Y + firstLine.H/2})
+		end := pv.layout.CaretAt(ui.TextCaretPosition{Index: pv.units[len(pv.units)-1], Affinity: ui.TextUpstream})
+		out = append(out, ParagraphBox{Index: i, Start: v.shown.paraStart(i), Top: top, Height: pv.h - pv.space,
+			FirstLineCenter: top + firstLine.Y + firstLine.H/2,
+			TextEndX:        v.padX + x + end.X, LastLineCenter: top + end.Y + end.H/2})
 	}
 	return out
 }

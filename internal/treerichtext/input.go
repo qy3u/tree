@@ -418,7 +418,6 @@ func (v *view) key(key ui.Key, mods ui.Modifiers) bool {
 			}
 			return v.run("indent")
 		}
-		return false
 	}
 	return false
 }
@@ -572,7 +571,12 @@ func (v *view) press(ev ui.InputEvent) bool {
 	}
 	if p, ok := v.taskBox(x, y); ok && ev.Clicks == 1 && !v.opts.ReadOnly {
 		start := v.shown.paraStart(p)
-		v.command(func(d *Document) { d.ToggleChecked(start) })
+		v.command(func(d *Document) {
+			if v.opts.OnTaskToggle != nil && v.opts.OnTaskToggle(start, ev.Time) {
+				return
+			}
+			d.ToggleChecked(start)
+		})
 		return true
 	}
 	i, aff := v.positionAt(x, y)

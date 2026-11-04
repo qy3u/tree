@@ -150,6 +150,14 @@ func (s ParagraphStyle) normalized() ParagraphStyle {
 	if s.List != Tasks {
 		s.Checked = false
 	}
+	if s.List != Tasks || s.CodeBlock || s.Heading != 0 {
+		s.Timer = TaskTimer{}
+	} else {
+		s.Timer = s.Timer.normalized()
+		if s.Timer.Enabled() {
+			s.Checked = s.Timer.State == TimerCompleted
+		}
+	}
 	return s
 }
 
@@ -163,7 +171,8 @@ type ParagraphStyle struct {
 	Heading int      `json:"heading,omitempty"`
 	List    ListKind `json:"list,omitempty"`
 	// Checked marks a task done.
-	Checked bool `json:"checked,omitempty"`
+	Checked bool      `json:"checked,omitempty"`
+	Timer   TaskTimer `json:"timer,omitzero"`
 	// Indent is how many levels the paragraph is indented: the level of a
 	// list's item, from 0.
 	Indent int `json:"indent,omitempty"`
@@ -623,7 +632,17 @@ func (t Text) ReplaceString(start, end int, s string, a Attributes) Text {
 		}
 		rest = after
 	}
-	return t.Replace(start, end, Text{text: rope.Build(s), paras: seqBuild(frag)})
+	out := t.Replace(start, end, Text{text: rope.Build(s), paras: seqBuild(frag)})
+	if len(frag) > 1 && style.Timer.Enabled() {
+		// Plain-text newlines must not clone a running timer/history into
+		// newly created paragraphs. The original block keeps its ID/state.
+		out = out.FormatParagraphs(start, start+utf8.RuneCountInString(s), func(p *ParagraphStyle) {
+			if p.ID == "" {
+				p.Timer = p.Timer.FreshCopy()
+			}
+		})
+	}
+	return out
 }
 
 // Insert returns the text with with inserted at rune i.

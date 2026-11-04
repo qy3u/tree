@@ -24,6 +24,8 @@ func commandAppearance(cmd blockCommand) (icon, hint, label string) {
 		return "bullet", "-", label
 	case "number":
 		return "number", "1.", label
+	case "ttodo":
+		return "clock", "", label
 	case "todo":
 		return "todo", "[]", label
 	case "quote":

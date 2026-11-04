@@ -19,6 +19,7 @@ func editBlock(doc *richtext.Document, index int, action string) {
 	case "duplicate":
 		copy := paras[index]
 		copy.Style.ID = newID()
+		copy.Style.Timer = copy.Style.Timer.FreshCopy()
 		copy.Runs = append([]richtext.Run(nil), copy.Runs...)
 		paras = append(paras, richtext.Paragraph{})
 		copyIndex := index + 1
@@ -80,7 +81,7 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 	}
 	ui.Box(c).Height(1).Background(line).Margin(4, 0)
 	for _, cmd := range blockCommands {
-		if cmd.ID != "text" && cmd.ID != "h1" && cmd.ID != "h2" && cmd.ID != "h3" && cmd.ID != "todo" && cmd.ID != "bullet" && cmd.ID != "number" && cmd.ID != "quote" && cmd.ID != "code" {
+		if cmd.ID != "text" && cmd.ID != "h1" && cmd.ID != "h2" && cmd.ID != "h3" && cmd.ID != "todo" && cmd.ID != "ttodo" && cmd.ID != "bullet" && cmd.ID != "number" && cmd.ID != "quote" && cmd.ID != "code" {
 			continue
 		}
 		if quietButton(c, "转为"+cmd.Label).KeepFocus().Height(28).Shrink(0).Clicked() {
@@ -113,7 +114,7 @@ func (a *app) blockMenuPanel(c *ui.Context, handle ui.Element, d *draft, index i
 		panel.Label("段落操作菜单").Width(204).Padding(4).Radius(8).Background(paper).Border(1, line).
 			Shadow(0, 5, 18, 0, ui.RGBA(0, 0, 0, .12)).
 			AttachTo(handle, ui.AnchorTopEnd, ui.AnchorTopStart).Margin(0, 6)
-		ui.Scroll(c).Label("段落操作列表").Height(min(float32(466), height-32)).Children(func() {
+		ui.Scroll(c).Label("段落操作列表").Height(min(float32(494), height-32)).Children(func() {
 			a.blockActions(c, d, index)
 			for _, item := range []struct {
 				label string
@@ -143,6 +144,9 @@ func convertBlock(doc *richtext.Document, index int, style richtext.ParagraphSty
 	doc.Edit(func(e *richtext.Edit) {
 		e.FormatParagraphs(start, start, func(p *richtext.ParagraphStyle) {
 			style.ID, style.Indent, style.Align = p.ID, p.Indent, p.Align
+			if style.Timer.Enabled() && p.Timer.Enabled() {
+				style.Timer = p.Timer
+			}
 			if style.List == richtext.Tasks && p.List == richtext.Tasks {
 				style.Checked = p.Checked
 			}

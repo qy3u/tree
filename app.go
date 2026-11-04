@@ -47,6 +47,7 @@ type app struct {
 	activeTab                                 int
 	revealTab                                 bool
 	win                                       *mygo.Window
+	quit                                      func()
 	timer                                     *time.Timer
 	status, failure                           string
 	errorOpen                                 bool
@@ -72,7 +73,7 @@ type app struct {
 }
 
 func newApp(s *Store) (*app, error) {
-	a := &app{store: s, drafts: map[string]*draft{}, expanded: map[string]*bool{}, status: "已保存到本机"}
+	a := &app{store: s, drafts: map[string]*draft{}, expanded: map[string]*bool{}, status: "已保存到本机", quit: mygo.App.Quit}
 	if err := a.reload(); err != nil {
 		return nil, err
 	}

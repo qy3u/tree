@@ -75,6 +75,7 @@ var (
 
 // encodeClip returns t in the clipboard's format.
 func encodeClip(t Text) []byte {
+	t = t.FormatParagraphs(0, t.Len(), func(p *ParagraphStyle) { p.Timer = p.Timer.FreshCopy() })
 	name := process + "-" + strconv.FormatUint(copyName.Add(1), 36)
 	if old, ok := lastCopy.Load().(string); ok {
 		copies.Delete(old)

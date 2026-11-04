@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/egoist/mygo/treerichtext"
 	"github.com/egoist/mygo/ui"
@@ -37,12 +38,14 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 		row.Children(func() {
 			gutter := ui.Box(c).Width(gutterWidth).Clip()
 			editor := richtext.EditorBase(c.Key("body:"+d.page.ID), d.doc, richtext.EditorOptions{
-				BeforeKey:        func(key ui.Key, mods ui.Modifiers) bool { return a.backspaceToTitle(d, key, mods) },
-				CodeHeaderHeight: 32,
-				OnPasteText:      a.pasteReference,
-				OnPasteRichText:  pasteReferenceStyles,
-				TagStyle:         referenceSpanStyle,
-				DrawAttachment:   a.drawPageReferenceIcon,
+				BeforeKey:              func(key ui.Key, mods ui.Modifiers) bool { return a.backspaceToTitle(d, key, mods) },
+				CodeHeaderHeight:       32,
+				ParagraphTrailingSpace: timedTaskTrailingSpace,
+				OnTaskToggle:           func(start int, at time.Time) bool { return a.toggleTimedTask(d, start, at) },
+				OnPasteText:            a.pasteReference,
+				OnPasteRichText:        pasteReferenceStyles,
+				TagStyle:               referenceSpanStyle,
+				DrawAttachment:         a.drawPageReferenceIcon,
 				OnLink: func(link string) {
 					if !a.openReference(link) && ui.SafeToOpen(link) {
 						c.OpenURL(link)
@@ -61,6 +64,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 			a.blockReferenceHighlight(c, d, editor)
 			a.attachmentControls(c, d)
 			a.codeControls(c, d)
+			a.timedTaskControls(c, d)
 			scroll := d.doc.ScrollOffset()
 			ui.Column(c.Key("page-heading:" + d.page.ID)).Absolute().Left(gutterWidth).Right(0).Top(top - scroll).Gap(20).Children(func() {
 				a.pageIconControl(c, d)

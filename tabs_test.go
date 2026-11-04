@@ -68,6 +68,8 @@ func TestTabHistoryIndependentBranchAndRestart(t *testing.T) {
 
 func TestNativeTabsOpenSwitchCloseAndShortcuts(t *testing.T) {
 	a, tt := commandTestApp(t)
+	quitCalls := 0
+	a.quit = func() { quitCalls++ }
 	ids := tabTestPages(t, a)
 	a.selectPage(ids[0])
 	tt.Frame()
@@ -132,13 +134,15 @@ func TestNativeTabsOpenSwitchCloseAndShortcuts(t *testing.T) {
 	if err := tt.Click("关闭标签页 2"); err != nil {
 		t.Fatal(err)
 	}
-	if len(a.tabs) != 1 || a.selected != ids[0] {
+	if len(a.tabs) != 1 || a.selected != ids[0] || quitCalls != 0 {
 		t.Fatal("close did not select remaining tab")
 	}
-	a.closeTab(0)
+	if err := tt.Click("关闭标签页 1"); err != nil {
+		t.Fatal(err)
+	}
 	tt.Frame()
-	if len(a.tabs) != 1 || a.current() != nil || len(a.pages) != count {
-		t.Fatal("last tab close should leave an empty tab without deleting pages")
+	if quitCalls != 1 || len(a.tabs) != 1 || a.selected != ids[0] || len(a.pages) != count {
+		t.Fatal("last tab close should quit without changing session or deleting pages")
 	}
 	pages, err := a.store.List()
 	if err != nil {
@@ -183,6 +187,7 @@ func TestTabDeletionAndSharedDraft(t *testing.T) {
 
 func TestTabsRejectSaveConflictAndRepairInvalidSession(t *testing.T) {
 	a, _ := commandTestApp(t)
+	a.quit = func() { t.Fatal("save failure must prevent quitting") }
 	id := a.selected
 	d := a.current()
 	other, err := a.store.List()
@@ -212,6 +217,63 @@ func TestTabsRejectSaveConflictAndRepairInvalidSession(t *testing.T) {
 			t.Fatal(err)
 		}
 		_ = b.tabs[b.activeTab].page()
+	}
+}
+
+func TestLastTabCloseSavesBeforeQuitAndRestoresSession(t *testing.T) {
+	for _, trigger := range []string{"click", "shortcut"} {
+		for _, route := range []string{"page", "empty", "library"} {
+			t.Run(trigger+"/"+route, func(t *testing.T) {
+				a, tt := commandTestApp(t)
+				pageID := a.selected
+				d := a.current()
+				if route == "empty" {
+					a.tabs[0].History = []string{""}
+					a.tabs[0].Position = 0
+					a.showTab()
+				} else if route == "library" {
+					a.selectPage(libraryRoute)
+				}
+				// A dirty draft must be saved even when a non-page tab is shown.
+				d.doc.InsertText("退出前最后的编辑🌲")
+				tt.Frame()
+				before := tabSession{a.tabs, a.activeTab}
+				quitCalls := 0
+				a.quit = func() {
+					quitCalls++
+					pages, err := a.store.List()
+					if err != nil {
+						t.Fatal(err)
+					}
+					found := false
+					for _, p := range pages {
+						if p.ID == pageID {
+							found = p.Body.Text.String() == "退出前最后的编辑🌲"
+						}
+					}
+					if !found {
+						t.Fatal("quit was requested before saving the draft")
+					}
+				}
+				if trigger == "click" {
+					if err := tt.Click("关闭标签页 1"); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					tt.Key(ui.Cmd, ui.KeyW)
+				}
+				if quitCalls != 1 {
+					t.Fatal("last tab did not request app quit exactly once")
+				}
+				reopened, err := newApp(a.store)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(before, tabSession{reopened.tabs, reopened.activeTab}) {
+					t.Fatal("last tab quit overwrote the saved session")
+				}
+			})
+		}
 	}
 }
 

@@ -13,10 +13,11 @@ type Table struct {
 	Cells [][]string `json:"cells"`
 }
 type Body struct {
-	Icon   string           `json:"icon,omitempty"`
-	Schema int              `json:"schema"`
-	Text   richtext.Text    `json:"text"`
-	Tables map[string]Table `json:"tables,omitempty"`
+	Icon      string                       `json:"icon,omitempty"`
+	Schema    int                          `json:"schema"`
+	Text      richtext.Text                `json:"text"`
+	Tables    map[string]Table             `json:"tables,omitempty"`
+	TaskTimes map[string][]TaskTimeSegment `json:"taskTimes,omitempty"`
 }
 
 func emptyBody() Body { return Body{Schema: 1, Text: richtext.NewText(""), Tables: map[string]Table{}} }

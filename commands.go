@@ -22,6 +22,7 @@ var blockCommands = []blockCommand{
 	{ID: "page", Label: "子页面", Aliases: "subpage child 页面 子页"},
 	{ID: "bullet", Label: "项目列表", Aliases: "bulleted unordered list 无序列表", Style: richtext.ParagraphStyle{List: richtext.Bullets}},
 	{ID: "number", Label: "编号列表", Aliases: "numbered ordered list 有序列表", Style: richtext.ParagraphStyle{List: richtext.Numbers}},
+	{ID: "ttodo", Label: "计时待办", Aliases: "timed timer task 计时 计时器", Style: richtext.ParagraphStyle{List: richtext.Tasks, Timer: richtext.TaskTimer{State: richtext.TimerIdle}}},
 	{ID: "todo", Label: "待办列表", Aliases: "to-do task checkbox checklist 待办 任务 复选框", Style: richtext.ParagraphStyle{List: richtext.Tasks}},
 	{ID: "quote", Label: "引用", Aliases: "blockquote 引用块", Style: richtext.ParagraphStyle{Quote: true}},
 	{ID: "divider", Label: "分隔线", Aliases: "hr separator 分割线"},

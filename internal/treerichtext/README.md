@@ -18,7 +18,7 @@ Tree-specific changes:
 - Code highlighting reuses MyGo `ui/editor` tokenizers as display-only spans, carries multiline lexical state across legacy code paragraphs and caches incoming states per document version.
 - `EditorOptions.CodeHeaderHeight` and `Document.VisibleCodeBlocks`: reserve and locate native language/copy controls without covering code text or the page title.
 
-- `ParagraphBox.FirstLineCenter`: native first-line metrics for vertically centering the block handle across headings, body text, lists and code.
+- `ParagraphBox.FirstLineCenter`: native first-line metrics for vertically centering the block handle across headings, body text, lists and code. `TextEndX` and `LastLineCenter` place inline controls after the rendered text, including wrapping and composition.
 
 - A plain left click below a terminal code block appends one ordinary paragraph and focuses it in one undo step; readonly views, selection drags, and clicks inside code retain their existing behavior.
 
@@ -33,3 +33,6 @@ Tree-specific changes:
 - `EditorOptions.DrawAttachment` lets page-reference icons use live target-page metadata while preserving the underlying text and attachment IDs.
 
 Root-package UI tests exercise these additions. When upgrading MyGo, compare this directory against the new `ui/richtext` source and reapply these changes; do not overwrite it blindly.
+
+- `ParagraphStyle.Timer`: persisted timed-task state, elapsed nanoseconds, running start/zone and active history reference. Enter creates an idle task without cloning its timer; rich clipboard copies become fresh tasks to avoid duplicating recorded work. Ordinary checked tasks still strike through; timed tasks strike through when terminated.
+- `EditorOptions.OnTaskToggle` passes the input event timestamp for exact checkbox completion, and `ParagraphTrailingSpace` reserves inline control space without overlapping text or changing hit-testing.

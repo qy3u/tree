@@ -279,6 +279,9 @@ func (v *view) enter() {
 				s.Heading = 0
 			}
 			s.Checked = false
+			if s.Timer.Enabled() {
+				s.Timer = TaskTimer{State: TimerIdle}
+			}
 		})
 	})
 	d.anchor, d.caret = v.caret, v.caret

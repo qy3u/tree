@@ -7,6 +7,9 @@ var icons = map[string]*ui.SVG{}
 
 func init() {
 	paths := map[string]string{
+		"play":         `<path d="m8 5 11 7-11 7z"/>`,
+		"pause":        `<path d="M8 5v14M16 5v14"/>`,
+		"check":        `<path d="m5 12 4 4L19 6"/>`,
 		"library":      `<rect x="3" y="4" width="4" height="16" rx=".5"/><rect x="9" y="4" width="4" height="16" rx=".5"/><path d="m15 5 4-1 4 15-4 1z"/>`,
 		"clock":        `<circle cx="12" cy="12" r="9"/><path d="M12 6v6H7"/>`,
 		"star":         `<path d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2L3 9.6l6.2-.9z"/>`,
