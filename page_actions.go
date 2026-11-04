@@ -64,8 +64,8 @@ func (a *app) childPages(c *ui.Context, parent string) {
 func (a *app) childPageGutter(c *ui.Context, d *draft, top, pointerY float32, over bool) {
 	for i, p := range sortedChildren(a.pages, d.page.ID) {
 		y := top + float32(i)*32
-		handle := ui.Box(c.Key("child-grip:"+p.ID)).KeepFocus().Absolute().Left(12).Top(y+3).Size(24, 26).Padding(4).AlignItems(ui.Center).Justify(ui.Center).Radius(4).Role(ui.RoleButton).Focusable().Label("移动子页面：" + pageTitle(p)).Drag(pageDrag(p.ID))
-		handle.Children(func() { ui.Icon(c, icons["grip"]).FontSize(16).TextColor(muted) })
+		handle := ui.Box(c.Key("child-grip:"+p.ID)).KeepFocus().Absolute().Left(12).Top(y+3).Size(24, 26).Padding(2).AlignItems(ui.Center).Justify(ui.Center).Radius(4).Role(ui.RoleButton).Focusable().Label("移动子页面：" + pageTitle(p)).Drag(pageDrag(p.ID))
+		handle.Children(func() { ui.Icon(c, icons["grip"]).FontSize(20).TextColor(muted) })
 		if !handle.Dragging() && !handle.Hovered() && !handle.Focused() && !(a.childMenuOpen && a.childMenu == p.ID) && !(over && pointerY >= y && pointerY < y+32) {
 			handle.Opacity(0)
 		}

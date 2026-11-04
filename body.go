@@ -201,8 +201,8 @@ func moveParagraph(doc *richtext.Document, from, to int) bool {
 	doc.Edit(func(e *richtext.Edit) {
 		e.Replace(0, e.Text().Len(), newText)
 		for pos, para := range newText.Paragraphs() {
-			id := para.Style.ID
-			e.FormatParagraphs(pos, pos, func(st *richtext.ParagraphStyle) { st.ID = id })
+			style := para.Style
+			e.FormatParagraphs(pos, pos, func(st *richtext.ParagraphStyle) { *st = style })
 		}
 		e.Select(start, start)
 	})

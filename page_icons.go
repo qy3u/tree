@@ -95,20 +95,27 @@ func (a *app) showPageIcons(id string) {
 }
 
 func (a *app) setPageIcon(id, icon string) {
+	if a.applyPageIcon(id, icon) {
+		a.iconPicker.Open = false
+	}
+}
+
+// Applying a random icon leaves the picker and its search state available.
+func (a *app) applyPageIcon(id, icon string) bool {
 	if icon != "" && coloredPageIcon(icon) == nil {
-		return
+		return false
 	}
 	d := a.current()
 	if d == nil || d.page.ID != id {
-		return
+		return false
 	}
 	d.page.Body.Icon = icon
 	d.dirty = true
 	if err := a.flush(); err != nil {
 		a.report(err)
-		return
+		return false
 	}
-	a.iconPicker.Open = false
+	return true
 }
 
 func pageIconSpace(p *Page) float32 {
@@ -162,7 +169,7 @@ func (a *app) pageIconControl(c *ui.Context, d *draft) {
 				}
 				if iconButton(c, "shuffle", "随机页面图标").Size(32, 32).Clicked() {
 					items := pageIconCatalog()
-					a.setPageIcon(d.page.ID, items[rand.IntN(len(items))].ID)
+					a.applyPageIcon(d.page.ID, items[rand.IntN(len(items))].ID)
 				}
 			})
 			items := filteredPageIcons(a.iconPicker.Query)

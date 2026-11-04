@@ -81,10 +81,9 @@ func TestPageIconPickerSearchChooseReplaceRemove(t *testing.T) {
 	}
 	tt.Click("设置页面图标")
 	tt.Click("随机页面图标")
-	if coloredPageIcon(d.page.Body.Icon) == nil || a.iconPicker.Open {
+	if coloredPageIcon(d.page.Body.Icon) == nil || !a.iconPicker.Open {
 		t.Fatal("random icon failed")
 	}
-	tt.Click("设置页面图标")
 	tt.Click("移除页面图标")
 	if d.page.Body.Icon != "" || a.iconPicker.Open {
 		t.Fatal("remove failed")
@@ -188,5 +187,52 @@ func TestPageIconCatalogAndReferenceDrawing(t *testing.T) {
 	}
 	if colored < 8 {
 		t.Fatal("page reference did not use colored target icon")
+	}
+}
+
+func TestPageIconRandomKeepsPickerOpen(t *testing.T) {
+	for _, initial := range []string{"", "books"} {
+		t.Run("initial="+initial, func(t *testing.T) {
+			a, tt := commandTestApp(t)
+			d := a.current()
+			tt.Type("正文保持不变")
+			before := d.doc.Text()
+			a.setPageIcon(d.page.ID, initial)
+			tt.Frame()
+			if err := tt.Click("设置页面图标"); err != nil {
+				t.Fatal(err)
+			}
+			tt.Type("book")
+			for i := 0; i < 8; i++ {
+				if err := tt.Click("随机页面图标"); err != nil {
+					t.Fatalf("click %d: %v", i+1, err)
+				}
+				if !a.iconPicker.Open {
+					t.Fatalf("picker closed after random click %d", i+1)
+				}
+				if a.iconPicker.Query != "book" {
+					t.Fatal("random selection cleared the search")
+				}
+				if coloredPageIcon(d.page.Body.Icon) == nil {
+					t.Fatal("invalid random icon")
+				}
+				if !d.doc.Text().Equal(before) {
+					t.Fatal("random selection changed the document")
+				}
+			}
+			lastIcon := d.page.Body.Icon
+			tt.Key(0, ui.KeyEscape)
+			if a.iconPicker.Open || d.page.Body.Icon != lastIcon {
+				t.Fatal("Escape failed to close and keep the chosen icon")
+			}
+			reopened, err := newApp(a.store)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reopened.selectPage(d.page.ID)
+			if reopened.current().page.Body.Icon != lastIcon {
+				t.Fatal("last random icon was not saved")
+			}
+		})
 	}
 }

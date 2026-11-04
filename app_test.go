@@ -7,7 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-func TestTitleEnterFocusesBodyWithoutChangingContent(t *testing.T) {
+func TestTitleEnterPreservesExistingBodyInSeparateBlock(t *testing.T) {
 	for _, body := range []string{"", "原有正文"} {
 		t.Run(body, func(t *testing.T) {
 			a, tt := commandTestApp(t)
@@ -23,11 +23,15 @@ func TestTitleEnterFocusesBodyWithoutChangingContent(t *testing.T) {
 			if !tt.Focused("笔记正文") {
 				t.Fatal("Enter did not focus the body")
 			}
-			if d.doc.Text().PlainText() != body || d.page.Title != "新标题" {
-				t.Fatal("Enter modified title or body content")
+			want := body
+			if body != "" {
+				want = "\n" + body
+			}
+			if d.doc.Text().PlainText() != want || d.page.Title != "新标题" {
+				t.Fatal("Enter did not preserve the existing body below the new block")
 			}
 			tt.Type("继续输入")
-			if d.doc.Text().PlainText() != "继续输入"+body {
+			if d.doc.Text().PlainText() != "继续输入"+want {
 				t.Fatal("typing did not start at the body without replacing existing content")
 			}
 		})

@@ -36,6 +36,8 @@ type app struct {
 	favorites                                 map[string]time.Time
 	libraryFavorites                          bool
 	focusTitlePage                            string
+	focusTitleEndPage                         string
+	titleBoundaryUndo                         titleBoundaryUndo
 	store                                     *Store
 	pages                                     []*Page
 	drafts                                    map[string]*draft
@@ -63,7 +65,7 @@ type app struct {
 	slashDismissed                            string
 	insertQuery                               string
 	blockMenu                                 bool
-	blockIndex                                int
+	blockID                                   string
 	formatHandle                              ui.Handle
 	editorHandle                              ui.Handle
 	titleHandle                               ui.Handle
@@ -228,6 +230,8 @@ func (a *app) selectPage(id string) {
 }
 func (a *app) showPage(id string) {
 	a.selected = id
+	a.focusTitleEndPage = ""
+	a.titleBoundaryUndo = titleBoundaryUndo{}
 	a.iconPicker.Open = false
 	a.childMenuOpen = false
 	a.pageMenu = false

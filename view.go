@@ -15,7 +15,7 @@ var muted = ui.Hex("#999894")
 var line = ui.Hex("#eeedeb")
 
 const sidebarWidth float32 = 252
-const gutterWidth float32 = 44
+const gutterWidth float32 = 51
 
 func quietButton(c *ui.Context, label string) ui.Element {
 	return ui.Button(c, label).Background(ui.Transparent).Border(0, line).Radius(5).TextColor(ink).FontSize(13).FontWeight(400).Padding(6, 8).Justify(ui.Start)
@@ -279,13 +279,20 @@ func (a *app) toolbar(c *ui.Context, d *draft) {
 	if f.Paragraph.Heading == 0 {
 		style = "正文"
 	}
-	if ui.Select(c, &style, []string{"正文", "H1", "H2", "H3", "H4", "H5", "H6"}).Label("段落样式").Width(76).Height(28).Border(0, line).Background(paper).Changed() {
-		level := 0
-		if style != "正文" {
-			fmt.Sscanf(style, "H%d", &level)
+	// A native menu keeps the editor's selection while the floating toolbar
+	// stays mounted. A nested Select popup can lose its click to the overlay.
+	quietButton(c.Key("paragraph-style"), "").Label("段落样式").KeepFocus().Width(76).Height(28).Justify(ui.SpaceBetween).Children(func() {
+		ui.Text(c, style).FontSize(13)
+		ui.Icon(c, icons["chevron-down"]).FontSize(14).TextColor(muted)
+	}).Menu(func(m *ui.Menu) {
+		for level, label := range []string{"正文", "H1", "H2", "H3", "H4", "H5", "H6"} {
+			if m.Item(label).Checked(f.Paragraph.Heading == level).Chosen() {
+				doc.SetHeading(level)
+				a.changed(d)
+				a.editorHandle.Focus()
+			}
 		}
-		doc.SetHeading(level)
-	}
+	})
 	ui.Box(c).Width(1).Height(18).Background(line).Margin(0, 4)
 	btn := func(icon, tip string, on bool, run func()) {
 		b := iconButton(c, icon, tip).KeepFocus()
