@@ -2,6 +2,10 @@
 
 使用 MyGo 原生 UI、原生富文本编辑器和 SQLite 实现的简易桌面笔记软件。界面以白色正文、浅灰侧栏和父子页面为主。当前构建面向 macOS Apple Silicon。
 
+## 设计文档
+
+- [Git 友好序列化方案与格式说明](docs/git-serialization-design.md)：已实现 v1，包含按页面和 Block 拆分的确定性文本格式、按日计时记录、二进制附件及数据库还原约束，供 private GitHub 仓库通过 diff 保存变化。
+
 ## 运行
 
 直接打开 `build/darwin-arm64/Tree.app`。
@@ -97,6 +101,27 @@ TREE_NOTES_DATA_DIR=/tmp/tree-notes-dev go tool mygo dev
 ```
 
 每个页面在当前进程内保留自己的选区和撤销历史；重启恢复内容与最近打开的页面，撤销历史不跨进程保存。
+
+## Git 文本快照
+
+「导入与备份」→「导出 Git 文本快照…」会在所选目录内创建或更新 `tree-data/`。页面元数据、Block 内容、正文顺序、有效计时记录和设置分别写入 JSON / JSONL，图片保持原始二进制。无变化的重复导出不改写文件；旧表格和撤销用的旧计时版本不导出。
+
+「从文本快照还原到新笔记库…」将完整数据还原到所选空目录，保留页面、Block、附件及笔记库 ID。还原不会覆盖或合并当前笔记库。也可以通过命令行导出、还原和打开新笔记库：
+
+```sh
+# 导出已保存的数据到仓库中的专用子目录，不启动编辑窗口
+./build/darwin-arm64/Tree.app/Contents/MacOS/Tree --export-git /path/to/repository/tree-data
+
+# 还原到不存在或为空的目录，其父目录必须存在
+./build/darwin-arm64/Tree.app/Contents/MacOS/Tree --restore-git /path/to/repository/tree-data --data-dir /path/to/restored-library
+
+# 打开还原后的笔记库
+./build/darwin-arm64/Tree.app/Contents/MacOS/Tree --data-dir /path/to/restored-library
+```
+
+`--data-dir` 可指定导出的源笔记库，未指定时沿用 `TREE_NOTES_DATA_DIR` 或默认本地目录。命令行导出读取已落库的数据；应用内导出会先保存当前草稿。导出目标必须是专用空目录或同一笔记库的有效文本快照，不应直接选择 Git 仓库根目录。格式不支持、附件缺失、计时不一致或目标目录不适合时会报错并保留原数据。
+
+运行中的计时只保存起点和此前累计值，不因导出而暂停或结算。还原仍保留运行状态，之后打开应用会按原起点继续计时。此功能只负责文本序列化和还原，不执行 Git 提交或推送。
 
 ## 验证
 

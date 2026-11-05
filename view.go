@@ -122,6 +122,12 @@ func (a *app) sidebar(c *ui.Context) {
 				if m.Item("从备份导入…").Chosen() {
 					a.restoreLibrary()
 				}
+				if m.Item("导出 Git 文本快照…").Chosen() {
+					a.exportGitLibrary()
+				}
+				if m.Item("从文本快照还原到新笔记库…").Chosen() {
+					a.restoreGitLibrary()
+				}
 			})
 		})
 	})

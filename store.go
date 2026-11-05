@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/plugins/sqlite"
+	"github.com/egoist/mygo/treerichtext"
 )
 
 var errConflict = errors.New("页面已被更新，请重新打开页面后重试")
@@ -64,7 +65,48 @@ func openStore(dir string) (*Store, error) {
 			return nil, err
 		}
 	}
+	if err = s.initializeIdentities(); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return s, nil
+}
+
+// Assign identities at persistence boundaries, including pages never opened
+// in an editor. Export reads these identities; it never invents new ones.
+func identifyStoredText(text richtext.Text) richtext.Text {
+	doc := richtext.NewDocument(text)
+	doc.IdentifyParagraphs(newID)
+	return doc.Text()
+}
+
+func (s *Store) initializeIdentities() error {
+	if s.Setting("libraryID") == "" {
+		if _, err := s.db.Execute(context.Background(), `INSERT INTO settings(key,value) VALUES('libraryID',?) ON CONFLICT(key) DO NOTHING`, newID()); err != nil {
+			return err
+		}
+	}
+	pages, err := s.list()
+	if err != nil {
+		return err
+	}
+	var statements []sqlite.Statement
+	for _, p := range pages {
+		text := identifyStoredText(p.Body.Text)
+		if text.Equal(p.Body.Text) {
+			continue
+		}
+		p.Body.Text = text
+		body, err := json.Marshal(p.Body)
+		if err != nil {
+			return err
+		}
+		statements = append(statements, sqlite.Statement{SQL: `UPDATE pages SET body=?,revision=revision+1 WHERE id=?`, Args: []any{string(body), p.ID}})
+	}
+	if len(statements) > 0 {
+		_, err = s.db.Transaction(context.Background(), statements)
+	}
+	return err
 }
 func (s *Store) Close() error { return s.db.Close() }
 func newID() string           { return strings.ToLower(rand.Text()) }
@@ -113,6 +155,7 @@ func (s *Store) Create(parent, title string, body Body) (*Page, error) {
 	if strings.TrimSpace(title) == "" {
 		title = ""
 	}
+	body.Text = identifyStoredText(body.Text)
 	p := &Page{ID: newID(), Parent: parent, Title: title, Position: pos, Body: body, Revision: 1, Updated: time.Now().UTC().Format(time.RFC3339Nano)}
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -124,6 +167,7 @@ func (s *Store) Create(parent, title string, body Body) (*Page, error) {
 func (s *Store) Save(p *Page) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	p.Body.Text = identifyStoredText(p.Body.Text)
 	b, err := json.Marshal(p.Body)
 	if err != nil {
 		return err
@@ -271,6 +315,8 @@ func (s *Store) Setting(key string) string {
 	return ""
 }
 func (s *Store) SetSetting(key, value string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, err := s.db.Execute(context.Background(), `INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, key, value)
 	return err
 }

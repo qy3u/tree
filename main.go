@@ -18,6 +18,13 @@ func main() {
 		}
 		dir = filepath.Join(base, "Tree Notes")
 	}
+	dir, handled, err := runDataCommand(os.Args[1:], dir, os.Stdout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if handled {
+		return
+	}
 	s, err := openStore(dir)
 	if err != nil {
 		log.Fatal(err)

@@ -14,6 +14,8 @@ import (
 )
 
 func (s *Store) ImportImage(data []byte, name string) (*richtext.Attachment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if len(data) > 30<<20 {
 		return nil, errors.New("图片大于 30 MB")
 	}
