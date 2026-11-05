@@ -15,6 +15,7 @@ type blockCommand struct {
 }
 
 var blockCommands = []blockCommand{
+	{ID: "leaf", Label: "Leaf", Aliases: "knowledge 知识 知识单元"},
 	{ID: "text", Label: "文本", Aliases: "paragraph plain 正文 段落"},
 	{ID: "h1", Label: "一级标题", Aliases: "heading1 heading 1 title 标题1", Style: richtext.ParagraphStyle{Heading: 1}},
 	{ID: "h2", Label: "二级标题", Aliases: "heading2 heading 2 subtitle 标题2", Style: richtext.ParagraphStyle{Heading: 2}},
@@ -146,7 +147,7 @@ func (a *app) slashKeys(d *draft, editor ui.Element) {
 	if s == nil {
 		return
 	}
-	items := matchingCommands(s.Query)
+	items := commandsForDraft(d, s.Query)
 	if editor.Shortcut(0, ui.KeyEscape) {
 		a.dismissSlash()
 		return
@@ -171,7 +172,7 @@ func (a *app) slashMenu(c *ui.Context, d *draft, anchor ui.Element) {
 	if s == nil {
 		return
 	}
-	items := matchingCommands(s.Query)
+	items := commandsForDraft(d, s.Query)
 	open := true
 	panel := ui.PopoverBase(c.Key("slash-menu"), anchor, &open, func(panel ui.Element) {
 		panel.Width(320).Padding(0).Gap(0).Radius(10).Background(paper).Border(1, line).Shadow(0, 5, 18, 0, ui.RGBA(0, 0, 0, 0.08)).Margin(6, 0)
@@ -245,6 +246,8 @@ func (a *app) pendingCommandRange(d *draft) (int, int, bool) {
 }
 
 func (a *app) runBlockCommand(d *draft, cmd blockCommand, fromSlash bool) {
+	a.editorDraft = d
+	a.editorHandle = d.editor
 	if fromSlash {
 		if a.slash == nil {
 			return
@@ -257,6 +260,9 @@ func (a *app) runBlockCommand(d *draft, cmd blockCommand, fromSlash bool) {
 	}
 	a.insertOpen = false
 	switch cmd.ID {
+	case "leaf":
+		a.createLeaf(d)
+		return
 	case "page":
 		a.slashPage(d)
 		return
@@ -297,7 +303,7 @@ func (a *app) nativeSlashKey(d *draft, key ui.Key, mods ui.Modifiers) bool {
 	if s == nil || s.key() == a.slashDismissed {
 		return false
 	}
-	items := matchingCommands(s.Query)
+	items := commandsForDraft(d, s.Query)
 	if len(items) == 0 {
 		return false
 	}

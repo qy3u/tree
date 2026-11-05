@@ -16,6 +16,12 @@ import (
 
 // EditorOptions configure an Editor.
 type EditorOptions struct {
+	// AttachmentSize overrides presentation without changing stored content.
+	// Non-positive dimensions retain the attachment's intrinsic size.
+	AttachmentSize func(*Attachment, float32) (float32, float32)
+	LayoutRevision uint64
+	// FitContent lays out every paragraph for an inline, non-scrolling editor.
+	FitContent bool
 	// LeadingSpace reserves scrollable room for the page title and child links.
 	LeadingSpace float32
 	// CodeHeaderHeight reserves room for application-owned code controls.
@@ -214,8 +220,9 @@ type look struct {
 	border ui.Color // around an attachment not loaded yet
 	// width is the room of the paragraph being laid out, which
 	// attachments shrink to.
-	width    float32
-	tagStyle func(tag string, s *ui.Span)
+	width          float32
+	tagStyle       func(tag string, s *ui.Span)
+	attachmentSize func(*Attachment, float32) (float32, float32)
 }
 
 func build(c *ui.Context, doc *Document, options []EditorOptions, styled bool) ui.Element {
@@ -294,11 +301,12 @@ func (v *view) setLook(t *ui.Theme, styled bool) {
 	def := defaultTheme(t)
 	th := resolve(v.opts.Theme, &def)
 	v.look = look{
-		Theme:    th,
-		size:     f.Size,
-		indent:   f.Size * th.Indent,
-		border:   t.Border,
-		tagStyle: v.opts.TagStyle,
+		Theme:          th,
+		size:           f.Size,
+		indent:         f.Size * th.Indent,
+		border:         t.Border,
+		tagStyle:       v.opts.TagStyle,
+		attachmentSize: v.opts.AttachmentSize,
 	}
 	if styled {
 		v.padX, v.padY = th.Padding[0], th.Padding[1]
@@ -428,6 +436,7 @@ func (v *view) paraFont(st ParagraphStyle) ui.Font {
 
 // lookKey is what of the look the layouts of paragraphs are made of.
 type lookKey struct {
+	revision      uint64
 	base          ui.Font
 	theme         Theme
 	tags          bool
@@ -435,7 +444,7 @@ type lookKey struct {
 }
 
 func (v *view) lookKey() lookKey {
-	return lookKey{base: v.base, theme: v.look.Theme, tags: v.look.tagStyle != nil, trailingSpace: v.opts.ParagraphTrailingSpace != nil}
+	return lookKey{revision: v.opts.LayoutRevision, base: v.base, theme: v.look.Theme, tags: v.look.tagStyle != nil, trailingSpace: v.opts.ParagraphTrailingSpace != nil}
 }
 
 // heading returns the style of headings of level, from 1.
@@ -564,6 +573,11 @@ func (look *look) span(text string, a Attributes, st ParagraphStyle) ui.Span {
 	if at := a.Attachment; at != nil {
 		// A box of the attachment's size, scaled down to the width.
 		w, h := at.size()
+		if look.attachmentSize != nil {
+			if width, height := look.attachmentSize(at, look.width); width > 0 && height > 0 {
+				w, h = width, height
+			}
+		}
 		if look.width > 0 && w > look.width {
 			w, h = look.width, h*look.width/w
 		}
@@ -820,6 +834,13 @@ func (v *view) layout(w, h float32) {
 		v.resetHeights()
 	}
 	v.viewH = h
+	if v.opts.FitContent {
+		for i := range v.paras {
+			v.paraLayout(i)
+		}
+		v.scroll = 0
+		v.reveal = false
+	}
 	v.estimate()
 	v.place(h)
 	if v.reveal {

@@ -121,7 +121,7 @@ func (s *Store) list() ([]*Page, error) {
 		if err = json.Unmarshal([]byte(r[4].(string)), &p.Body); err != nil {
 			return nil, fmt.Errorf("读取页面 %s: %w", p.Title, err)
 		}
-		if p.Body.Schema != 1 {
+		if p.Body.Schema != 1 && p.Body.Schema != 2 {
 			return nil, fmt.Errorf("页面 %s 使用不支持的正文版本 %d", p.Title, p.Body.Schema)
 		}
 		if p.Body.Tables == nil {
@@ -155,7 +155,7 @@ func (s *Store) Create(parent, title string, body Body) (*Page, error) {
 	if strings.TrimSpace(title) == "" {
 		title = ""
 	}
-	body.Text = identifyStoredText(body.Text)
+	identifyBody(&body)
 	p := &Page{ID: newID(), Parent: parent, Title: title, Position: pos, Body: body, Revision: 1, Updated: time.Now().UTC().Format(time.RFC3339Nano)}
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *Store) Create(parent, title string, body Body) (*Page, error) {
 func (s *Store) Save(p *Page) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	p.Body.Text = identifyStoredText(p.Body.Text)
+	identifyBody(&p.Body)
 	b, err := json.Marshal(p.Body)
 	if err != nil {
 		return err

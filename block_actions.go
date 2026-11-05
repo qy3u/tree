@@ -6,6 +6,9 @@ import (
 )
 
 func editBlock(doc *richtext.Document, index int, action string) {
+	editBlockTransform(doc, index, action, nil)
+}
+func editBlockTransform(doc *richtext.Document, index int, action string, duplicate func(*richtext.Paragraph)) {
 	var paras []richtext.Paragraph
 	for _, p := range doc.Text().Paragraphs() {
 		paras = append(paras, p)
@@ -21,6 +24,9 @@ func editBlock(doc *richtext.Document, index int, action string) {
 		copy.Style.ID = newID()
 		copy.Style.Timer = copy.Style.Timer.FreshCopy()
 		copy.Runs = append([]richtext.Run(nil), copy.Runs...)
+		if duplicate != nil {
+			duplicate(&copy)
+		}
 		paras = append(paras, richtext.Paragraph{})
 		copyIndex := index + 1
 		for i := len(paras) - 1; i > copyIndex; i-- {
@@ -59,9 +65,12 @@ func editBlock(doc *richtext.Document, index int, action string) {
 	})
 }
 func (a *app) blockActions(c *ui.Context, d *draft, index int) {
+	start, _ := paragraphStart(d.doc.Text(), index)
+	isLeaf := leafID(d.doc.Text().AttributesAt(start).Attachment) != ""
+
 	run := func(label, action string) {
 		if quietButton(c, label).KeepFocus().Height(28).Shrink(0).Clicked() {
-			editBlock(d.doc, index, action)
+			a.editLeafAwareBlock(d, index, action)
 			a.changed(d)
 			a.blockMenu = false
 			a.editorHandle.Focus()
@@ -69,8 +78,12 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 	}
 	run("在上方插入", "before")
 	run("在下方插入", "after")
-	run("复制块", "duplicate")
-	if quietButton(c, "复制块链接").KeepFocus().Height(28).Shrink(0).Clicked() {
+	if isLeaf {
+		run("复制 Leaf", "duplicate")
+	} else {
+		run("复制块", "duplicate")
+	}
+	if d.parent == nil && quietButton(c, "复制块链接").KeepFocus().Height(28).Shrink(0).Clicked() {
 		if link, err := a.copyBlockLink(d, index); err != nil {
 			a.report(err)
 		} else {
@@ -81,6 +94,9 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 	}
 	ui.Box(c).Height(1).Background(line).Margin(4, 0)
 	for _, cmd := range blockCommands {
+		if isLeaf {
+			break
+		}
 		if cmd.ID != "text" && cmd.ID != "h1" && cmd.ID != "h2" && cmd.ID != "h3" && cmd.ID != "todo" && cmd.ID != "ttodo" && cmd.ID != "bullet" && cmd.ID != "number" && cmd.ID != "quote" && cmd.ID != "code" {
 			continue
 		}
@@ -94,7 +110,11 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 		}
 	}
 	ui.Box(c).Height(1).Background(line).Margin(4, 0)
-	run("删除块", "delete")
+	if isLeaf {
+		run("删除 Leaf", "delete")
+	} else {
+		run("删除块", "delete")
+	}
 }
 
 func paragraphStart(text richtext.Text, index int) (int, bool) {

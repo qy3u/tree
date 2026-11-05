@@ -13,6 +13,7 @@ type Table struct {
 	Cells [][]string `json:"cells"`
 }
 type Body struct {
+	Leaves    map[string]Leaf              `json:"leaves,omitempty"`
 	Icon      string                       `json:"icon,omitempty"`
 	Schema    int                          `json:"schema"`
 	Text      richtext.Text                `json:"text"`
@@ -102,6 +103,8 @@ func hydrate(b Body, dir string) richtext.Text {
 			}
 			copy := *at
 			switch {
+			case strings.HasPrefix(at.URL, "leaf:"):
+				copy = *leafAttachment(strings.TrimPrefix(at.URL, "leaf:"))
 			case strings.HasPrefix(at.URL, "table:"):
 				if table, ok := b.Tables[strings.TrimPrefix(at.URL, "table:")]; ok {
 					copy = *tableAttachment(strings.TrimPrefix(at.URL, "table:"), table)
@@ -131,7 +134,12 @@ func (b Body) Markdown() string {
 			if at == nil {
 				continue
 			}
-			if strings.HasPrefix(at.URL, "table:") || at.URL == "divider:" {
+			if strings.HasPrefix(at.URL, "leaf:") {
+				token := "TREELEAF" + newID() + "END"
+				leaf := b.Leaves[strings.TrimPrefix(at.URL, "leaf:")]
+				p.Runs[i] = richtext.Run{Text: token}
+				replacements[token] = "## " + leafDisplayTitle(leaf.Title) + "\n\n" + leaf.Content.Markdown()
+			} else if strings.HasPrefix(at.URL, "table:") || at.URL == "divider:" {
 				token := "TREEBLOCK" + newID() + "END"
 				value := "---"
 				if at.URL != "divider:" {
@@ -158,6 +166,10 @@ func (b Body) PlainText() string {
 	s.WriteString(b.Text.PlainText())
 	for _, run := range b.Text.Runs(0, b.Text.Len()) {
 		at := run.Attributes.Attachment
+		if at != nil && strings.HasPrefix(at.URL, "leaf:") {
+			leaf := b.Leaves[strings.TrimPrefix(at.URL, "leaf:")]
+			s.WriteString(" " + leaf.Title + " " + leaf.Content.PlainText())
+		}
 		if at == nil || !strings.HasPrefix(at.URL, "table:") {
 			continue
 		}

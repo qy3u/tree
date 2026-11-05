@@ -13,12 +13,17 @@ import (
 )
 
 type draft struct {
-	gutter  gutterInteraction
-	page    *Page
-	doc     *richtext.Document
-	version uint64
-	title   string
-	dirty   bool
+	parent         *draft
+	leafID         string
+	leafViews      map[string]*leafView
+	layoutRevision uint64
+	editor         ui.Handle
+	gutter         gutterInteraction
+	page           *Page
+	doc            *richtext.Document
+	version        uint64
+	title          string
+	dirty          bool
 }
 type pageDrag string
 type paragraphDrag struct {
@@ -26,6 +31,7 @@ type paragraphDrag struct {
 	Index int
 }
 type app struct {
+	editorDraft                               *draft
 	childMenu                                 string
 	childMenuOpen                             bool
 	iconPicker                                pageIconPicker
@@ -186,6 +192,9 @@ func (a *app) changed(d *draft) {
 	d.version = d.doc.Version()
 	d.title = d.page.Title
 	d.dirty = true
+	if d.parent != nil {
+		a.syncLeaf(d)
+	}
 	a.status = "待保存…"
 	if a.timer != nil {
 		a.timer.Stop()
@@ -196,6 +205,9 @@ func (a *app) changed(d *draft) {
 }
 func (a *app) flush() error {
 	for _, d := range a.drafts {
+		for _, v := range d.leafViews {
+			a.syncLeaf(v.draft)
+		}
 		if d.doc.Version() != d.version || d.title != d.page.Title {
 			d.dirty = true
 		}
@@ -230,6 +242,7 @@ func (a *app) selectPage(id string) {
 	a.showTab()
 }
 func (a *app) showPage(id string) {
+	a.editorDraft = nil
 	a.selected = id
 	a.focusTitleEndPage = ""
 	a.titleBoundaryUndo = titleBoundaryUndo{}
@@ -298,13 +311,13 @@ func (a *app) moveCurrent(delta int) {
 	}
 }
 func (a *app) openLink() {
-	if d := a.current(); d != nil {
+	if d := a.editing(); d != nil {
 		a.linkURL = d.doc.Formatting().Link
 		a.linkOpen = true
 	}
 }
 func (a *app) insertAttachment(at *richtext.Attachment) {
-	if d := a.current(); d != nil {
+	if d := a.editing(); d != nil {
 		anchor, caret := d.doc.Selection()
 		lo, hi := min(anchor, caret), max(anchor, caret)
 		if start, end, ok := a.pendingCommandRange(d); ok {
@@ -379,7 +392,7 @@ func (a *app) export() {
 	a.status = "已导出到 " + out
 }
 func (a *app) openTable() {
-	d := a.current()
+	d := a.editing()
 	if d == nil {
 		return
 	}
@@ -403,7 +416,7 @@ func (a *app) openTable() {
 	a.tableOpen = true
 }
 func (a *app) saveTable() {
-	d := a.current()
+	d := a.editing()
 	if d == nil || d.page.ID != a.tablePage {
 		return
 	}

@@ -111,8 +111,7 @@ func (s *Store) Export(rootID, dir string) (string, error) {
 		if err = os.WriteFile(filepath.Join(out, names[p.ID]), []byte(md), 0600); err != nil {
 			return "", err
 		}
-		for _, run := range p.Body.Text.Runs(0, p.Body.Text.Len()) {
-			at := run.Attributes.Attachment
+		for _, at := range p.Body.attachments() {
 			if at == nil || !strings.HasPrefix(at.URL, "asset:") {
 				continue
 			}

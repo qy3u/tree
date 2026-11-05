@@ -174,6 +174,17 @@ func (a *app) openSearchResult(id, query string) {
 		for pos, para := range d.doc.Text().Paragraphs() {
 			for _, run := range para.Runs {
 				at := run.Attributes.Attachment
+				if id := leafID(at); id != "" {
+					leaf := d.page.Body.Leaves[id]
+					if x, _ := textMatch(leaf.Title+" "+leaf.Content.PlainText(), query); x >= 0 {
+						start, end = pos, pos+1
+						if v := a.leafView(d, id); v != nil {
+							v.collapsed = false
+							d.layoutRevision++
+						}
+					}
+				}
+
 				if at != nil && strings.HasPrefix(at.URL, "table:") {
 					t := d.page.Body.Tables[strings.TrimPrefix(at.URL, "table:")]
 					if x, _ := textMatch(t.markdown(), query); x >= 0 {

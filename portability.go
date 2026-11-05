@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -125,7 +124,7 @@ func (s *Store) RestoreBackup(path string) (string, error) {
 	byID := map[string]*Page{}
 	ids := map[string]string{}
 	for _, p := range backup.Pages {
-		if p == nil || p.ID == "" || byID[p.ID] != nil || p.Body.Schema != 1 {
+		if p == nil || p.ID == "" || byID[p.ID] != nil || (p.Body.Schema != 1 && p.Body.Schema != 2) {
 			return "", errors.New("备份页面数据无效")
 		}
 		byID[p.ID] = p
@@ -182,23 +181,10 @@ func (s *Store) RestoreBackup(path string) (string, error) {
 		return "", err
 	}
 	for _, p := range backup.Pages {
-		var paras []richtext.Paragraph
-		for _, para := range p.Body.Text.Paragraphs() {
-			for i, r := range para.Runs {
-				if at := r.Attributes.Attachment; at != nil && strings.HasPrefix(at.URL, "asset:") {
-					old := strings.TrimPrefix(at.URL, "asset:")
-					next, ok := assets[old]
-					if !ok {
-						return "", fmt.Errorf("备份缺少附件 %s", old)
-					}
-					copy := *at
-					copy.URL = "asset:" + next
-					para.Runs[i].Attributes.Attachment = &copy
-				}
-			}
-			paras = append(paras, para)
+		if err = remapBodyAssets(&p.Body, assets); err != nil {
+			return "", err
 		}
-		p.Body.Text = richtext.TextOf(paras...)
+
 		p.ID = ids[p.ID]
 		if p.Parent == "" {
 			p.Parent = root

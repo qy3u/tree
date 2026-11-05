@@ -31,24 +31,10 @@ func (s *Store) gitSnapshot() (*gitSnapshot, error) {
 			if err = strictJSON([]byte(r[5].(string)), &p.Body); err != nil {
 				return nil, err
 			}
-			// Body.Text has its own decoder; separately reject future native fields.
-			var raw struct {
-				Icon      string                       `json:"icon"`
-				Schema    int                          `json:"schema"`
-				Text      json.RawMessage              `json:"text"`
-				Tables    map[string]Table             `json:"tables"`
-				TaskTimes map[string][]TaskTimeSegment `json:"taskTimes"`
-			}
-			if err = strictJSON([]byte(r[5].(string)), &raw); err != nil {
+			if err = validateStoredBody([]byte(r[5].(string))); err != nil {
 				return nil, err
 			}
-			var text storedText
-			if err = strictJSON(raw.Text, &text); err != nil {
-				return nil, err
-			}
-			if p.Body.Schema != 1 {
-				return nil, errors.New("不支持的正文版本")
-			}
+
 			snap.Pages = append(snap.Pages, p)
 		case "setting":
 			snap.Settings[r[1].(string)] = r[2].(string)
@@ -83,7 +69,15 @@ func snapshotFiles(s *gitSnapshot) (map[string][]byte, error) {
 	if !gitName(s.Format.LibraryID) {
 		return nil, errors.New("缺少稳定笔记库 ID")
 	}
-	if err := add("format.json", s.Format); err != nil {
+	format := s.Format
+	for _, p := range s.Pages {
+		for _, at := range p.Body.attachments() {
+			if leafID(at) != "" {
+				format.Version = 2
+			}
+		}
+	}
+	if err := add("format.json", format); err != nil {
 		return nil, err
 	}
 	if err := add("assets/index.json", s.Assets); err != nil {
@@ -103,6 +97,28 @@ func snapshotFiles(s *gitSnapshot) (map[string][]byte, error) {
 		}
 		if err := add(base+"page.json", gitPage{p.Title, p.Parent, p.Position, p.Body.Icon, p.Updated, p.Deleted}); err != nil {
 			return nil, err
+		}
+		leafSeen := map[string]bool{}
+		for _, run := range p.Body.Text.Runs(0, p.Body.Text.Len()) {
+			id := leafID(run.Attributes.Attachment)
+			if id == "" {
+				continue
+			}
+			if !gitName(id) || leafSeen[id] {
+				return nil, errors.New("Leaf ID 无效或被重复放置")
+			}
+			leafSeen[id] = true
+			leaf, ok := p.Body.Leaves[id]
+			if !ok {
+				return nil, errors.New("Leaf 内容缺失")
+			}
+			value, err := exportGitLeaf(id, leaf)
+			if err != nil {
+				return nil, err
+			}
+			if err = add(base+"leaves/"+id+".json", value); err != nil {
+				return nil, err
+			}
 		}
 		order := []string{}
 		paras, err := storedParagraphs(p.Body.Text)
@@ -242,7 +258,7 @@ func decodeGitFiles(files map[string][]byte) (*gitSnapshot, error) {
 	if err := read("format.json", &s.Format); err != nil {
 		return nil, err
 	}
-	if s.Format.Format != "tree-git" || s.Format.Version != gitFormatVersion || !gitName(s.Format.LibraryID) {
+	if s.Format.Format != "tree-git" || (s.Format.Version != gitFormatVersion && s.Format.Version != 2) || !gitName(s.Format.LibraryID) {
 		return nil, errors.New("不支持的序列化版本或笔记库 ID")
 	}
 	if err := read("assets/index.json", &s.Assets); err != nil {
@@ -358,6 +374,29 @@ func decodeGitFiles(files map[string][]byte) (*gitSnapshot, error) {
 		}
 		if err = json.Unmarshal(raw, &p.Body.Text); err != nil {
 			return nil, err
+		}
+		p.Body.Leaves = map[string]Leaf{}
+		for _, run := range p.Body.Text.Runs(0, p.Body.Text.Len()) {
+			leafID := leafID(run.Attributes.Attachment)
+			if leafID == "" {
+				continue
+			}
+			if s.Format.Version < 2 || !gitName(leafID) {
+				return nil, errors.New("Leaf 要求序列化格式 v2")
+			}
+			if _, ok := p.Body.Leaves[leafID]; ok {
+				return nil, errors.New("Leaf 被重复放置")
+			}
+			var value gitLeaf
+			if err := read(base+"leaves/"+leafID+".json", &value); err != nil {
+				return nil, err
+			}
+			leaf, err := importGitLeaf(leafID, value, s.Assets)
+			if err != nil {
+				return nil, err
+			}
+			p.Body.Leaves[leafID] = leaf
+			p.Body.Schema = 2
 		}
 		s.Pages = append(s.Pages, p)
 		byID[id] = p

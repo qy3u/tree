@@ -342,13 +342,13 @@ func (a *app) dialogs(c *ui.Context) {
 		ui.TextInput(c, &a.linkURL).Label("链接地址").Placeholder("https://…").Width(360).AutoFocus()
 		ui.Row(c).Gap(8).Children(func() {
 			if ui.Button(c, "移除链接").Clicked() {
-				if d := a.current(); d != nil {
+				if d := a.editing(); d != nil {
 					d.doc.SetLink("")
 				}
 				a.linkOpen = false
 			}
 			if ui.PrimaryButton(c, "应用链接").Clicked() {
-				if d := a.current(); d != nil {
+				if d := a.editing(); d != nil {
 					d.doc.SetLink(a.linkURL)
 				}
 				a.linkOpen = false

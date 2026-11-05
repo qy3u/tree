@@ -38,12 +38,15 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 		row.Children(func() {
 			gutter := ui.Box(c).Width(gutterWidth).Clip()
 			editor := richtext.EditorBase(c.Key("body:"+d.page.ID), d.doc, richtext.EditorOptions{
-				BeforeKey:              func(key ui.Key, mods ui.Modifiers) bool { return a.backspaceToTitle(d, key, mods) },
+				BeforeKey: func(key ui.Key, mods ui.Modifiers) bool {
+					return a.backspaceToTitle(d, key, mods)
+				},
+				AttachmentSize: func(at *richtext.Attachment, w float32) (float32, float32) { return a.leafSize(d, at, w) }, LayoutRevision: d.layoutRevision,
 				CodeHeaderHeight:       32,
 				ParagraphTrailingSpace: timedTaskTrailingSpace,
 				OnTaskToggle:           func(start int, at time.Time) bool { return a.toggleTimedTask(d, start, at) },
 				OnPasteText:            a.pasteReference,
-				OnPasteRichText:        pasteReferenceStyles,
+				OnPasteRichText:        func(text richtext.Text) richtext.Text { return a.pasteLeaves(d, text) },
 				TagStyle:               referenceSpanStyle,
 				DrawAttachment:         a.drawPageReferenceIcon,
 				OnLink: func(link string) {
@@ -53,7 +56,11 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 				},
 				LeadingSpace: top + 76 + pageIconSpace(d.page) + float32(len(sortedChildren(a.pages, d.page.ID)))*32,
 				Label:        "笔记正文", Placeholder: notebookPlaceholder(d.doc.Text()), Font: notebookFont, Theme: &notebookTheme, OnLinkCommand: a.openLink,
-			}).Grow(1).MinWidth(0).FocusRing(false).Bind(&a.editorHandle)
+			}).Grow(1).MinWidth(0).FocusRing(false).Bind(&d.editor)
+			if editor.Focused() || a.editorDraft == nil {
+				a.editorDraft = d
+				a.editorHandle = d.editor
+			}
 			activeStart := d.gutter.update(d.doc, editor.Focused(), pointerX, pointerY, over)
 			gutter.Children(func() {
 				a.blockGutter(c, d, pointerY, over, activeStart)
@@ -65,6 +72,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 			a.attachmentControls(c, d)
 			a.codeControls(c, d)
 			a.timedTaskControls(c, d)
+			a.leafControls(c, d)
 			scroll := d.doc.ScrollOffset()
 			ui.Column(c.Key("page-heading:" + d.page.ID)).Absolute().Left(gutterWidth).Right(0).Top(top - scroll).Gap(20).Children(func() {
 				a.pageIconControl(c, d)
@@ -83,6 +91,10 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 					a.titleBoundaryUndo = titleBoundaryUndo{}
 					a.changed(d)
 				}
+				if title.Focused() {
+					a.editorDraft = d
+					a.editorHandle = d.editor
+				}
 				if title.Submitted() {
 					a.enterBodyFromTitle(d)
 				}
@@ -90,9 +102,11 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 					ui.Column(c).Children(func() { a.childPages(c, d.page.ID) })
 				}
 			})
-			a.syncSlash(d, editor)
-			a.slashKeys(d, editor)
-			if a.slash != nil {
+			if editor.Focused() || a.slash != nil && a.slash.Page == d.page.ID {
+				a.syncSlash(d, editor)
+				a.slashKeys(d, editor)
+			}
+			if a.slash != nil && a.slash.Page == d.page.ID {
 				visible := false
 				for _, box := range d.doc.VisibleParagraphs() {
 					if box.Start == a.slash.ParagraphStart {
@@ -107,7 +121,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 				}
 			}
 			start, end := d.doc.Selection()
-			if start != end && a.slash == nil && !a.insertOpen && !a.linkOpen && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
+			if a.editorDraft == d && start != end && a.slash == nil && !a.insertOpen && !a.linkOpen && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
 				for _, box := range d.doc.VisibleParagraphs() {
 					_, paraEnd := d.doc.Text().ParagraphRange(box.Start)
 					if paraEnd < min(start, end) || box.Top < 0 {
@@ -176,7 +190,14 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 		}
 		// Keep the drag source mounted while the pointer travels to another
 		// paragraph. Only its visible/focusable controls follow the hover.
-		handle := ui.Box(c.Key(key)).KeepFocus().Absolute().Left(12).Top(box.FirstLineCenter-13).Size(24, 26).Padding(2).AlignItems(ui.Center).Justify(ui.Center).Radius(4).Drag(paragraphDrag{d.page.ID, box.Index})
+		center := box.FirstLineCenter
+		for _, at := range d.doc.VisibleAttachments() {
+			if at.Start == box.Start && leafID(at.Attachment) != "" {
+				center = at.Rect.Y + 26
+				break
+			}
+		}
+		handle := ui.Box(c.Key(key)).KeepFocus().Absolute().Left(12).Top(center-13).Size(24, 26).Padding(2).AlignItems(ui.Center).Justify(ui.Center).Radius(4).Drag(paragraphDrag{d.page.ID, box.Index})
 		if menuHere || handle.Dragging() || box.Start == activeStart || (activeStart < 0 && over && pointerY >= box.Top && pointerY < box.Top+max(28, box.Height)) {
 			handle.Label(fmt.Sprintf("移动段落 %d", box.Index+1)).Role(ui.RoleButton).Focusable().Tooltip("拖动调整顺序，点击打开段落菜单").Children(func() {
 				ui.Icon(c, icons["grip"]).FontSize(20).TextColor(muted)
@@ -189,6 +210,8 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			moveParagraph(d.doc, drag.Index, box.Index)
 		}
 		if handle.Clicked() {
+			a.editorDraft = d
+			a.editorHandle = d.editor
 			a.blockID, a.blockMenu = blockID, !menuHere
 			d.doc.SetSelection(box.Start, box.Start)
 			visible = true
@@ -197,7 +220,7 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			a.blockMenuPanel(c, handle, d, box.Index)
 		}
 	}
-	if !visible {
+	if !visible && a.editorDraft == d {
 		a.blockMenu = false
 	}
 }

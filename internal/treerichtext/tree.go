@@ -2,6 +2,39 @@ package richtext
 
 import "github.com/egoist/mygo/ui"
 
+// ContentHeight reports fully measured content for FitContent editors.
+func (d *Document) ContentHeight() float32 {
+	d.lock()
+	v := d.shownIn.Value()
+	d.mu.Unlock()
+	if v == nil {
+		return 0
+	}
+	return float32(v.hs.top(len(v.paras)))
+}
+
+// CaretRect and ViewportHeight let an inline editor reveal its caret through
+// its owning scroll view, rather than introducing an independent scrollbar.
+func (d *Document) CaretRect() ui.Rect {
+	d.lock()
+	v := d.shownIn.Value()
+	d.mu.Unlock()
+	if v == nil || len(v.paras) == 0 {
+		return ui.Rect{}
+	}
+	x, y, h := v.caretAt(v.caret, v.composeCaret, v.affinity)
+	return ui.Rect{X: x, Y: float32(y - v.scroll), W: 1, H: h}
+}
+func (d *Document) ViewportHeight() float32 {
+	d.lock()
+	v := d.shownIn.Value()
+	d.mu.Unlock()
+	if v == nil {
+		return 0
+	}
+	return v.viewH
+}
+
 // ScrollOffset reports the native editor's current scroll, for page chrome.
 func (d *Document) ScrollOffset() float32 {
 	d.lock()

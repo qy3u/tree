@@ -18,6 +18,8 @@ func commandAppearance(cmd blockCommand) (icon, hint, label string) {
 		return "h2", "##", label
 	case "h3":
 		return "h3", "###", label
+	case "leaf":
+		return "leaf", "", label
 	case "page":
 		return "page", "", label
 	case "bullet":
