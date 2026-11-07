@@ -106,9 +106,8 @@ func (a *app) closeTab(index int) {
 		return
 	}
 	if len(a.tabs) == 1 {
-		// Keep the saved session intact for the next launch. Use the normal
-		// application lifecycle so quit/close hooks still run.
-		a.quit()
+		// Keep the final tab and its editing state alive while hidden.
+		a.hide()
 		return
 	}
 	a.tabs = append(a.tabs[:index], a.tabs[index+1:]...)

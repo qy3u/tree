@@ -115,7 +115,6 @@ func (v *view) ReplaceText(r *ui.TextInputRange, s string) {
 		v.replace(v.caret, v.caret, s)
 	case r == nil:
 		v.insert(s)
-		v.typed(s)
 	default:
 		a, z := v.virtualRune(r.Start), v.virtualRune(r.End)
 		if a > z {
@@ -132,6 +131,7 @@ func (v *view) ReplaceText(r *ui.TextInputRange, s string) {
 	}
 	v.compose, v.composing = "", false
 	v.composeCaret, v.composeSelected = 0, ui.TextInputRange{}
+	v.typed(s)
 	v.reveal = true
 	v.publish()
 }

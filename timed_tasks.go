@@ -39,6 +39,13 @@ func (a *app) timedTaskAction(d *draft, id, action string, now time.Time) bool {
 	if !timer.Enabled() {
 		return false
 	}
+	key := runningTask{page: d.page.ID, block: id}.key()
+	if d.parent != nil {
+		key = runningTask{page: d.parent.page.ID, leaf: d.leafID, block: id}.key()
+	}
+	if check, ok := a.taskChecks[key]; ok && check.StartedAt == timer.StartedAtNS && check.Expires != 0 && now.UnixNano() > check.Expires {
+		now = time.Unix(0, check.Expires)
+	}
 	switch action {
 	case "start":
 		timer = timer.Start(taskLocalTime(now))
@@ -90,6 +97,11 @@ func (a *app) timedTaskAction(d *draft, id, action string, now time.Time) bool {
 	// Save transitions immediately; repainting the counter does not edit the
 	// document, add undo steps, or trigger a write every second.
 	a.report(a.flush())
+	if _, ok := a.taskChecks[key]; ok {
+		a.closeTaskNotice(key)
+		delete(a.taskChecks, key)
+		a.saveTaskChecks()
+	}
 	return true
 }
 

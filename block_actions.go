@@ -73,7 +73,7 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 			a.editLeafAwareBlock(d, index, action)
 			a.changed(d)
 			a.blockMenu = false
-			a.editorHandle.Focus()
+			a.focusBlockEditor(d)
 		}
 	}
 	run("在上方插入", "before")
@@ -90,7 +90,7 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 			c.WriteClipboard(link)
 		}
 		a.blockMenu = false
-		a.editorHandle.Focus()
+		a.focusBlockEditor(d)
 	}
 	ui.Box(c).Height(1).Background(line).Margin(4, 0)
 	for _, cmd := range blockCommands {
@@ -105,7 +105,7 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 			// or a selection changed while the popup was open.
 			convertBlock(d.doc, index, cmd.Style)
 			a.changed(d)
-			a.editorHandle.Focus()
+			a.focusBlockEditor(d)
 			a.blockMenu = false
 		}
 	}
@@ -147,7 +147,7 @@ func (a *app) blockMenuPanel(c *ui.Context, handle ui.Element, d *draft, index i
 						a.changed(d)
 					}
 					a.blockMenu = false
-					a.editorHandle.Focus()
+					a.focusBlockEditor(d)
 				}
 			}
 		})
@@ -177,4 +177,12 @@ func convertBlock(doc *richtext.Document, index int, style richtext.ParagraphSty
 		})
 		e.Select(start, start)
 	})
+}
+
+// Menu actions belong to the editor that supplied the block, even while
+// another Leaf editor retains keyboard focus during the menu interaction.
+func (a *app) focusBlockEditor(d *draft) {
+	a.editorDraft = d
+	a.editorHandle = d.editor
+	d.editor.Focus()
 }

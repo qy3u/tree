@@ -103,6 +103,10 @@ func hydrate(b Body, dir string) richtext.Text {
 			}
 			copy := *at
 			switch {
+			case isInlineMath(at):
+				copy = *inlineMathAttachment(strings.TrimPrefix(at.URL, "math-inline:"))
+			case strings.HasPrefix(at.URL, "math:"):
+				copy = *mathAttachment(strings.TrimPrefix(at.URL, "math:"))
 			case strings.HasPrefix(at.URL, "leaf:"):
 				copy = *leafAttachment(strings.TrimPrefix(at.URL, "leaf:"))
 			case strings.HasPrefix(at.URL, "table:"):
@@ -134,7 +138,13 @@ func (b Body) Markdown() string {
 			if at == nil {
 				continue
 			}
-			if strings.HasPrefix(at.URL, "leaf:") {
+			if source, ok := mathSource(at); ok {
+				token := "TREEMATH" + newID() + "END"
+				attrs := r.Attributes
+				attrs.Attachment = nil
+				p.Runs[i] = richtext.Run{Text: token, Attributes: attrs}
+				replacements[token] = (mathSpan{source: source, inline: isInlineMath(at)}).markup()
+			} else if strings.HasPrefix(at.URL, "leaf:") {
 				token := "TREELEAF" + newID() + "END"
 				leaf := b.Leaves[strings.TrimPrefix(at.URL, "leaf:")]
 				p.Runs[i] = richtext.Run{Text: token}

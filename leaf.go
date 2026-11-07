@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/treerichtext"
 	"github.com/egoist/mygo/ui"
 )
@@ -145,6 +146,8 @@ func (a *app) leafSize(d *draft, at *richtext.Attachment, width float32) (float3
 }
 
 func (a *app) leafControls(c *ui.Context, d *draft) {
+	// Link callbacks run between frames; retain window services, not the frame context.
+	services := c.Services()
 	for _, box := range d.doc.VisibleAttachments() {
 		id := leafID(box.Attachment)
 		if id == "" {
@@ -216,17 +219,28 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 			area.Children(func() {
 				gutter := ui.Box(c).Width(gutterWidth)
 				editor := richtext.EditorBase(c.Key("leaf-body:"+id), child.doc, richtext.EditorOptions{
+					AttachmentSize: func(at *richtext.Attachment, w float32) (float32, float32) {
+						if _, ok := mathSource(at); ok && !isInlineMath(at) {
+							return w, at.Height
+						}
+						return 0, 0
+					},
 					FitContent: true, Label: "Leaf 正文", Placeholder: "写下这段知识…", Font: notebookFont, Theme: &notebookTheme,
 					CodeHeaderHeight: 32, ParagraphTrailingSpace: timedTaskTrailingSpace,
+					OnTyped:     func(s string) bool { return a.typedMath(child, s) },
+					BeforePaste: func(data transfer.Data) bool { return a.pasteMath(child, data) || a.pasteWebURL(child, data) },
 					BeforeKey: func(key ui.Key, mods ui.Modifiers) bool {
+						if a.mathEnter(child, key, mods) || a.urlPasteKey(child, key, mods) {
+							return true
+						}
 						return a.backspaceToTitle(child, key, mods)
 					},
 					OnTaskToggle: func(start int, at time.Time) bool { return a.toggleTimedTask(child, start, at) },
 					OnPasteText:  a.pasteReference, OnPasteRichText: a.leafPasteText, TagStyle: referenceSpanStyle, DrawAttachment: a.drawPageReferenceIcon,
-					OnPasteImage: func() bool { a.editorDraft = child; return a.nativePasteImage() },
+					OnPasteImage: func() bool { return a.nativePasteImage(child, services) },
 					OnLink: func(link string) {
 						if !a.openReference(link) && ui.SafeToOpen(link) {
-							c.OpenURL(link)
+							services.OpenURL(link)
 						}
 					}, OnLinkCommand: a.openLink,
 				}).Grow(1).MinWidth(0).FocusRing(false).Bind(&child.editor)
@@ -241,7 +255,10 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 				active := child.gutter.update(child.doc, editor.Focused(), x, y, over)
 				gutter.Children(func() { a.blockGutter(c, child, y, over, active) })
 				a.blockReferenceHighlight(c, child, editor)
+				a.urlPasteView(c, child, editor)
+				a.linkHoverView(c, child, editor)
 				a.attachmentControls(c, child)
+				a.mathControls(c, child, editor)
 				a.codeControls(c, child)
 				a.timedTaskControls(c, child)
 				_, caret := child.doc.Selection()
@@ -263,7 +280,7 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 					}
 				}
 				start, end := child.doc.Selection()
-				if a.editorDraft == child && start != end && a.slash == nil && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
+				if a.editorDraft == child && start != end && a.slash == nil && !a.linkOpen && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
 					anchor := ui.Box(c).Absolute().Left(gutterWidth).Top(0).Size(1, 1)
 					ui.Overlay(c, func() {
 						ui.Row(c.Key("leaf-format")).Bind(&a.formatHandle).AttachTo(anchor, ui.AnchorTopStart, ui.AnchorBottomStart).Padding(4).Gap(2).Background(paper).Border(1, line).Radius(6).Children(func() { a.toolbar(c, child) })
@@ -308,7 +325,7 @@ func (a *app) leafPasteText(text richtext.Text) richtext.Text {
 		}
 		paras = append(paras, p)
 	}
-	return pasteReferenceStyles(richtext.TextOf(paras...))
+	return hydrateMath(pasteReferenceStyles(richtext.TextOf(paras...)))
 }
 
 func cloneLeaf(leaf Leaf) Leaf {
@@ -360,10 +377,13 @@ func (b Body) attachments() []*richtext.Attachment {
 	return result
 }
 
-func remapBodyAssets(body *Body, assets map[string]string) error {
+func remapBodyAssets(body *Body, assets map[string]string, mappings ...map[string]string) error {
 	leafIDs := map[string]string{}
 	for id := range body.Leaves {
 		leafIDs[id] = newID()
+		if len(mappings) > 0 {
+			mappings[0][id] = leafIDs[id]
+		}
 	}
 	var paras []richtext.Paragraph
 	for _, p := range body.Text.Paragraphs() {
@@ -390,7 +410,7 @@ func remapBodyAssets(body *Body, assets map[string]string) error {
 	body.Text = richtext.TextOf(paras...)
 	leaves := map[string]Leaf{}
 	for id, leaf := range body.Leaves {
-		if err := remapBodyAssets(&leaf.Content, assets); err != nil {
+		if err := remapBodyAssets(&leaf.Content, assets, mappings...); err != nil {
 			return err
 		}
 		leaves[leafIDs[id]] = leaf
@@ -436,7 +456,7 @@ func (a *app) pasteLeaves(d *draft, text richtext.Text) richtext.Text {
 		}
 		paras = append(paras, p)
 	}
-	return pasteReferenceStyles(richtext.TextOf(paras...))
+	return hydrateMath(pasteReferenceStyles(richtext.TextOf(paras...)))
 }
 
 func (a *app) editLeafAwareBlock(d *draft, index int, action string) {
@@ -463,4 +483,11 @@ func (a *app) editLeafAwareBlock(d *draft, index int, action string) {
 			break
 		}
 	})
+}
+
+// A standalone Leaf is an entire knowledge unit, not a line of editable
+// parent text. Both positions beside its attachment share this paragraph.
+func leafBoundaryCaret(text richtext.Text, caret int) bool {
+	start, end := text.ParagraphRange(caret)
+	return end-start == 1 && leafID(text.AttributesAt(start).Attachment) != ""
 }

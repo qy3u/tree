@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/treerichtext"
 	"github.com/egoist/mygo/ui"
 	"strings"
@@ -21,8 +21,17 @@ func (a *app) updateInlineTable(d *draft, start int, t Table) {
 	d.page.Body.Tables[id] = copyTable(t)
 	a.replaceAttachment(d, start, tableAttachment(id, t))
 }
-func (a *app) nativePasteImage() bool {
-	data := mygo.Clipboard.ReadImage()
+func (a *app) nativePasteImage(d *draft, services ui.Services) bool {
+	// The window clipboard service also normalizes macOS TIFF screenshots to PNG.
+	clipboard := services.ReadClipboardData(transfer.PNG)
+	if len(clipboard.Formats()) == 0 {
+		return false
+	}
+	data, err := clipboard.Read(transfer.PNG)
+	if err != nil {
+		a.report(fmt.Errorf("无法读取剪贴板图片：%w", err))
+		return true
+	}
 	if len(data) == 0 {
 		return false
 	}
@@ -31,9 +40,15 @@ func (a *app) nativePasteImage() bool {
 		a.report(err)
 		return true
 	}
+	// The paste belongs to this exact editor, regardless of the last focused Leaf.
+	a.editorDraft = d
+	a.editorHandle = d.editor
+	a.urlPaste = nil
 	a.insertAttachment(at)
+	a.dismissSlash()
 	return true
 }
+
 func (a *app) attachmentControls(c *ui.Context, d *draft) {
 	for _, box := range d.doc.VisibleAttachments() {
 		at := box.Attachment

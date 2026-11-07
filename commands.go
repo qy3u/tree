@@ -30,6 +30,7 @@ var blockCommands = []blockCommand{
 	{ID: "image", Label: "图片…", Aliases: "photo picture 图片 图像"},
 	{ID: "paste-image", Label: "粘贴图片", Aliases: "clipboard 粘贴图片"},
 	{ID: "code", Label: "代码块", Aliases: "codeblock 代码", Style: richtext.ParagraphStyle{CodeBlock: true}},
+	{ID: "math", Label: "公式", Aliases: "equation latex 数学 公式"},
 	{ID: "table", Label: "插入 / 编辑表格…", Aliases: "grid 表格"},
 }
 
@@ -260,6 +261,9 @@ func (a *app) runBlockCommand(d *draft, cmd blockCommand, fromSlash bool) {
 	}
 	a.insertOpen = false
 	switch cmd.ID {
+	case "math":
+		a.insertMath(d)
+		return
 	case "leaf":
 		a.createLeaf(d)
 		return

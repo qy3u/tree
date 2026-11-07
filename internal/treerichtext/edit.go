@@ -293,6 +293,19 @@ func (v *view) enter() {
 
 // typed runs the Markdown shortcuts after s was typed at the caret.
 func (v *view) typed(s string) {
+	if v.opts.OnTyped != nil && !v.opts.ReadOnly {
+		v.publish()
+		version := v.doc.Version()
+		handled := v.opts.OnTyped(s)
+		v.sync()
+		if v.doc.Version() != version {
+			v.coalesce = false
+			v.reveal = true
+		}
+		if handled {
+			return
+		}
+	}
 	if v.opts.NoMarkdown || v.opts.ReadOnly || utf8.RuneCountInString(s) != 1 {
 		return
 	}

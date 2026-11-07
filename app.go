@@ -13,6 +13,7 @@ import (
 )
 
 type draft struct {
+	linkHover      linkHover
 	parent         *draft
 	leafID         string
 	leafViews      map[string]*leafView
@@ -31,6 +32,14 @@ type paragraphDrag struct {
 	Index int
 }
 type app struct {
+	mathEdit         *mathEditState
+	urlPaste         *urlPasteState
+	taskChecks       map[string]taskCheck
+	taskCheckTimer   *time.Timer
+	taskCheckStopped bool
+	taskNotices      map[string]func()
+	taskNotify       func(string, string, string, time.Time) func()
+
 	editorDraft                               *draft
 	childMenu                                 string
 	childMenuOpen                             bool
@@ -53,7 +62,8 @@ type app struct {
 	activeTab                                 int
 	revealTab                                 bool
 	win                                       *mygo.Window
-	quit                                      func()
+	hide                                      func()
+	quitting                                  bool
 	timer                                     *time.Timer
 	status, failure                           string
 	errorOpen                                 bool
@@ -64,6 +74,7 @@ type app struct {
 	trashOpen, moveOpen, pageMenu, insertOpen bool
 	linkOpen                                  bool
 	linkURL                                   string
+	linkEdit                                  linkEditState
 	tableOpen                                 bool
 	table                                     Table
 	tableStart, tableEnd                      int
@@ -73,13 +84,14 @@ type app struct {
 	insertQuery                               string
 	blockMenu                                 bool
 	blockID                                   string
+	blockMenuPage                             string
 	formatHandle                              ui.Handle
 	editorHandle                              ui.Handle
 	titleHandle                               ui.Handle
 }
 
 func newApp(s *Store) (*app, error) {
-	a := &app{store: s, drafts: map[string]*draft{}, expanded: map[string]*bool{}, status: "已保存到本机", quit: mygo.App.Quit}
+	a := &app{store: s, drafts: map[string]*draft{}, expanded: map[string]*bool{}, status: "已保存到本机", hide: mygo.App.Hide}
 	if err := a.reload(); err != nil {
 		return nil, err
 	}
@@ -101,6 +113,7 @@ func newApp(s *Store) (*app, error) {
 			}
 		}
 	}
+	a.loadTaskChecks()
 	a.restoreTabs()
 	a.loadFavorites()
 	a.recordVisit(a.selected)
@@ -128,8 +141,9 @@ func (a *app) find(id string) *Page {
 	}
 	return nil
 }
-func (a *app) current() *draft {
-	p := a.find(a.selected)
+func (a *app) current() *draft { return a.draftForPage(a.selected) }
+func (a *app) draftForPage(id string) *draft {
+	p := a.find(id)
 	if p == nil || p.Deleted != "" {
 		return nil
 	}
@@ -242,6 +256,13 @@ func (a *app) selectPage(id string) {
 	a.showTab()
 }
 func (a *app) showPage(id string) {
+	if a.mathEdit != nil {
+		a.finishMathEdit(true)
+	}
+	a.urlPaste = nil
+	if a.linkOpen {
+		a.finishLinkEdit(false, false)
+	}
 	a.editorDraft = nil
 	a.selected = id
 	a.focusTitleEndPage = ""
@@ -312,8 +333,7 @@ func (a *app) moveCurrent(delta int) {
 }
 func (a *app) openLink() {
 	if d := a.editing(); d != nil {
-		a.linkURL = d.doc.Formatting().Link
-		a.linkOpen = true
+		a.beginLinkEdit(d)
 	}
 }
 func (a *app) insertAttachment(at *richtext.Attachment) {

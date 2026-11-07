@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"log"
@@ -37,20 +38,27 @@ func main() {
 	mygo.App.WhenReady(func() {
 		mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu}, {Label: "文件", Submenu: a.fileMenu()}, {Role: mygo.RoleEditMenu}, {Role: mygo.RoleFormatMenu}, {Role: mygo.RoleWindowMenu}}))
 		a.win = mygo.NewWindow(mygo.WindowOptions{Title: "Tree — 本地笔记", TitleBarStyle: mygo.TitleBarHidden, Width: 1120, Height: 800, MinWidth: 850, MinHeight: 580, StateKey: "notes", Content: ui.View(a.view)})
-		a.win.OnClose(func(e *mygo.CloseEvent) {
-			if err := a.flush(); err != nil {
-				a.report(err)
-				e.PreventDefault()
-				a.win.Update(func() {})
+		if err := mygo.GlobalShortcut.Register("Cmd+,", func() {
+			if a.win == nil || a.win.IsDestroyed() {
+				return
 			}
-		})
-		mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
-			if err := a.flush(); err != nil {
-				a.report(err)
-				e.PreventDefault()
-				a.win.Update(func() {})
+			mygo.App.Show()
+			if a.win.IsMinimized() {
+				a.win.Restore()
 			}
-		})
+			a.win.Show()
+			mygo.App.Focus()
+			a.win.Focus()
+		}); err != nil {
+			a.report(fmt.Errorf("无法注册全局快捷键 ⌘,：%w", err))
+		} else {
+			a.win.OnClosed(func() { mygo.GlobalShortcut.Unregister("Cmd+,") })
+		}
+		a.taskNotify = a.showTaskNotification
+		a.startTaskChecks()
+		a.win.OnClosed(a.stopTaskChecks)
+		a.win.OnClose(a.closeWindow)
+		mygo.App.OnBeforeQuit(a.beforeQuit)
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)

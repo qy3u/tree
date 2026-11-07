@@ -11,11 +11,21 @@ import (
 	"github.com/egoist/mygo/internal/l10n"
 	"github.com/egoist/mygo/internal/platform"
 	"github.com/egoist/mygo/internal/rope"
+	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 )
 
 // EditorOptions configure an Editor.
 type EditorOptions struct {
+	// OnTyped runs after committed text, before Markdown shortcuts. The selection
+	// is published; true suppresses shortcuts for app-owned inline syntax.
+	OnTyped func(string) bool
+	// BeforePaste may handle clipboard content before normal rich-text insertion.
+	// Skipped in code and for paste-and-match-style. Selection is published first.
+	BeforePaste func(transfer.Data) bool
+	// HideCaretAt suppresses the insertion caret at app-owned block boundaries.
+	// It does not change text selection, keyboard navigation, or the IME geometry.
+	HideCaretAt func(Text, int) bool
 	// AttachmentSize overrides presentation without changing stored content.
 	// Non-positive dimensions retain the attachment's intrinsic size.
 	AttachmentSize func(*Attachment, float32) (float32, float32)
@@ -275,7 +285,7 @@ func build(c *ui.Context, doc *Document, options []EditorOptions, styled bool) u
 	if styled {
 		e.FocusRing(false)
 	}
-	if focused && !v.opts.ReadOnly {
+	if focused && !v.opts.ReadOnly && !v.caretHidden() {
 		// The caret blinks for half a minute after the last change.
 		const blink = 530 * time.Millisecond
 		if phase := c.Now().Sub(v.blinkStart); phase < 30*time.Second {
@@ -581,7 +591,8 @@ func (look *look) span(text string, a Attributes, st ParagraphStyle) ui.Span {
 		if look.width > 0 && w > look.width {
 			w, h = look.width, h*look.width/w
 		}
-		s.ObjectWidth, s.ObjectHeight = w, h
+		descent := min(max(at.Descent, 0), at.Height) * h / max(at.Height, 1)
+		s.ObjectWidth, s.ObjectHeight, s.ObjectDescent = w, h-descent, descent
 	}
 	return s
 }
@@ -1053,4 +1064,8 @@ func (v *view) accessRuns(out []platform.AccessTextRun) []platform.AccessTextRun
 func sameFormat(a, b platform.AccessTextRun) bool {
 	a.Start, a.End, b.Start, b.End = 0, 0, 0, 0
 	return a == b
+}
+
+func (v *view) caretHidden() bool {
+	return v.opts.HideCaretAt != nil && v.opts.HideCaretAt(v.shown, v.caret)
 }

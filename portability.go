@@ -17,8 +17,9 @@ import (
 )
 
 type noteBackup struct {
-	Version int     `json:"version"`
-	Pages   []*Page `json:"pages"`
+	TaskChecks map[string]taskCheck `json:"taskChecks,omitempty"`
+	Version    int                  `json:"version"`
+	Pages      []*Page              `json:"pages"`
 }
 
 func (s *Store) Backup(dir string) (string, error) {
@@ -43,7 +44,9 @@ func (s *Store) Backup(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err = json.NewEncoder(w).Encode(noteBackup{1, pages}); err != nil {
+	var checks map[string]taskCheck
+	_ = json.Unmarshal([]byte(s.Setting(taskCheckSetting)), &checks)
+	if err = json.NewEncoder(w).Encode(noteBackup{Version: 1, Pages: pages, TaskChecks: checks}); err != nil {
 		return "", err
 	}
 	entries, err := os.ReadDir(filepath.Join(s.dir, "assets"))
@@ -180,9 +183,30 @@ func (s *Store) RestoreBackup(path string) (string, error) {
 	if err = insert(&Page{ID: root, Title: "恢复的笔记 · " + time.Now().Format("2006-01-02 15:04"), Body: emptyBody()}); err != nil {
 		return "", err
 	}
+	restoredChecks := map[string]taskCheck{}
 	for _, p := range backup.Pages {
-		if err = remapBodyAssets(&p.Body, assets); err != nil {
+		leafIDs := map[string]string{}
+		oldID := p.ID
+		if err = remapBodyAssets(&p.Body, assets, leafIDs); err != nil {
 			return "", err
+		}
+
+		for key, check := range backup.TaskChecks {
+			parts := strings.Split(key, "/")
+			if len(parts) != 3 || parts[0] != oldID {
+				continue
+			}
+			leaf := parts[1]
+			if leaf != "" {
+				leaf = leafIDs[leaf]
+				if leaf == "" {
+					continue
+				}
+			}
+			if check.Token != "" {
+				check.Token = newID()
+			}
+			restoredChecks[ids[oldID]+"/"+leaf+"/"+parts[2]] = check
 		}
 
 		p.ID = ids[p.ID]
@@ -202,6 +226,18 @@ func (s *Store) RestoreBackup(path string) (string, error) {
 		stmts = append(stmts, sqlite.Statement{SQL: `INSERT INTO assets(id,name,path) VALUES(?,?,?)`, Args: []any{next, old, next}})
 	}
 	s.mu.Lock()
+	if len(restoredChecks) > 0 {
+		checks := map[string]taskCheck{}
+		_ = json.Unmarshal([]byte(s.Setting(taskCheckSetting)), &checks)
+		if checks == nil {
+			checks = map[string]taskCheck{}
+		}
+		for key, check := range restoredChecks {
+			checks[key] = check
+		}
+		raw, _ := json.Marshal(checks)
+		stmts = append(stmts, sqlite.Statement{SQL: `INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, Args: []any{taskCheckSetting, string(raw)}})
+	}
 	_, err = s.db.Transaction(context.Background(), stmts)
 	s.mu.Unlock()
 	if err != nil {
@@ -313,5 +349,6 @@ func (a *app) restoreLibrary() {
 		return
 	}
 	a.report(a.reload())
+	_ = json.Unmarshal([]byte(a.store.Setting(taskCheckSetting)), &a.taskChecks)
 	a.selectPage(id)
 }

@@ -208,6 +208,16 @@ func (v *view) copySelection() {
 // format the editor reads, or its plain text in the typing attributes when
 // matching the style.
 func (v *view) paste(matchStyle bool) {
+	if !matchStyle && v.opts.BeforePaste != nil && !v.shown.ParagraphStyleAt(v.caret).CodeBlock && !v.shown.AttributesAt(v.caret).Code {
+		v.publish()
+		data := v.services.ReadClipboardData(Format, transfer.HTML, RTF, transfer.Markdown, transfer.Text, transfer.URIList)
+		if v.opts.BeforePaste(data) {
+			v.sync()
+			v.reveal = true
+			return
+		}
+	}
+
 	if !matchStyle && v.opts.OnPasteImage != nil {
 		v.publish()
 		if v.opts.OnPasteImage() {

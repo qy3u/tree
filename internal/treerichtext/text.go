@@ -92,6 +92,9 @@ type Attachment struct {
 	// Width and Height are the size of the box in DIPs; zero takes the
 	// image's size. A box wider than the editor is scaled down to fit.
 	Width, Height float32
+	// Descent is the portion of Height below the baseline. This derived display
+	// metric is reconstructed by the host when hydrating rich attachments.
+	Descent float32
 	// Name describes the attachment to assistive technology, and stands
 	// for it in plain text: an image's alternative text, a file's name.
 	Name string

@@ -55,7 +55,7 @@ func (v *view) paint(p *ui.Painter, r ui.Rect) {
 			}
 		}
 	}
-	if focused && !v.opts.ReadOnly && a == z {
+	if focused && !v.opts.ReadOnly && a == z && !v.caretHidden() {
 		const blink = 530 * time.Millisecond
 		if phase := p.Now().Sub(v.blinkStart); (phase/blink)%2 == 0 || phase < 0 {
 			cx, cy, ch := v.paintedCaretAt(v.caret, v.composeCaret, v.affinity)

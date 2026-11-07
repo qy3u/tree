@@ -49,6 +49,20 @@ func tableSeparator(line string) bool {
 }
 func parseMarkdownBody(md string) Body {
 	b := emptyBody()
+	mathTokens := map[string]mathSpan{}
+	spans := allMathSpans(md)
+	runes := []rune(md)
+	for i := len(spans) - 1; i >= 0; i-- {
+		span := spans[i]
+		token := "TREEMATH" + newID() + "END"
+		mathTokens[token] = span
+		replacement := token
+		if !span.inline {
+			replacement = "\n" + token + "\n"
+		}
+		runes = append(append(append([]rune{}, runes[:span.start]...), []rune(replacement)...), runes[span.end:]...)
+	}
+	md = string(runes)
 	lines := strings.Split(md, "\n")
 	var out []string
 	tokens := map[string]string{}
@@ -97,5 +111,31 @@ func parseMarkdownBody(md string) Body {
 		paras = append(paras, para)
 	}
 	b.Text = richtext.TextOf(paras...)
+	for token, span := range mathTokens {
+		for {
+			raw := b.Text.String()
+			pos := strings.Index(raw, token)
+			if pos < 0 {
+				break
+			}
+			start := len([]rune(raw[:pos]))
+			end := start + len(token)
+			if mathRangeProtected(b.Text, start, end) {
+				b.Text = b.Text.ReplaceString(start, end, span.markup(), b.Text.AttributesAt(start))
+			} else {
+				span.start, span.end = start, end
+				b.Text = b.Text.Replace(start, end, mathReplacement(b.Text, span))
+			}
+		}
+		// Table cells remain textual; never leave internal parser placeholders in them.
+		for id, table := range b.Tables {
+			for i, row := range table.Cells {
+				for j, cell := range row {
+					table.Cells[i][j] = strings.ReplaceAll(cell, token, span.markup())
+				}
+			}
+			b.Tables[id] = table
+		}
+	}
 	return b
 }

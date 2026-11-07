@@ -69,6 +69,7 @@ func (a *app) view(c *ui.Context) {
 			a.changed(d)
 		})
 	})
+	a.taskCheckNotices(c)
 	a.dialogs(c)
 }
 
@@ -337,24 +338,6 @@ func (a *app) dialogs(c *ui.Context) {
 		}
 	})
 	a.searchDialog(c)
-	ui.Modal(c, &a.linkOpen, func() {
-		ui.Text(c, "编辑链接").Bold()
-		ui.TextInput(c, &a.linkURL).Label("链接地址").Placeholder("https://…").Width(360).AutoFocus()
-		ui.Row(c).Gap(8).Children(func() {
-			if ui.Button(c, "移除链接").Clicked() {
-				if d := a.editing(); d != nil {
-					d.doc.SetLink("")
-				}
-				a.linkOpen = false
-			}
-			if ui.PrimaryButton(c, "应用链接").Clicked() {
-				if d := a.editing(); d != nil {
-					d.doc.SetLink(a.linkURL)
-				}
-				a.linkOpen = false
-			}
-		})
-	})
 	ui.DialogBase(c, &a.trashOpen, func(backdrop, panel ui.Element) {
 		backdrop.Background(ui.RGBA(0, 0, 0, 0.25))
 		panel.Width(560).Height(420).Padding(24).Gap(12).Radius(9).Background(paper)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/treerichtext"
 	"github.com/egoist/mygo/ui"
 )
@@ -11,7 +12,7 @@ import (
 var notebookFont = ui.Font{Size: 16, LineHeight: 1.75, Antialiased: true}
 var notebookTheme = richtext.Theme{
 	Text: ink, Muted: ui.Hex("#969590"), Caret: ink,
-	Link: ui.Hex("#337ea9"), Checkbox: ui.Hex("#2e87dc"),
+	Link: ui.Hex("#787774"), Checkbox: ui.Hex("#2e87dc"),
 	ParagraphSpacing: .25, Indent: 1.9,
 	Headings: [6]richtext.HeadingStyle{
 		{Size: 1.875, Weight: 700, Top: .9, Bottom: .25},
@@ -21,6 +22,8 @@ var notebookTheme = richtext.Theme{
 }
 
 func (a *app) documentView(c *ui.Context, d *draft) {
+	// Link callbacks run between frames; retain window services, not the frame context.
+	services := c.Services()
 	w, h := c.Size()
 	mainWidth := w - sidebarWidth - 1
 	width := min(float32(720), mainWidth-96)
@@ -38,10 +41,22 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 		row.Children(func() {
 			gutter := ui.Box(c).Width(gutterWidth).Clip()
 			editor := richtext.EditorBase(c.Key("body:"+d.page.ID), d.doc, richtext.EditorOptions{
+				OnTyped:      func(s string) bool { return a.typedMath(d, s) },
+				BeforePaste:  func(data transfer.Data) bool { return a.pasteMath(d, data) || a.pasteWebURL(d, data) },
+				OnPasteImage: func() bool { return a.nativePasteImage(d, services) },
 				BeforeKey: func(key ui.Key, mods ui.Modifiers) bool {
+					if a.mathEnter(d, key, mods) || a.urlPasteKey(d, key, mods) {
+						return true
+					}
 					return a.backspaceToTitle(d, key, mods)
 				},
-				AttachmentSize: func(at *richtext.Attachment, w float32) (float32, float32) { return a.leafSize(d, at, w) }, LayoutRevision: d.layoutRevision,
+				HideCaretAt: leafBoundaryCaret,
+				AttachmentSize: func(at *richtext.Attachment, w float32) (float32, float32) {
+					if _, ok := mathSource(at); ok && !isInlineMath(at) {
+						return w, at.Height
+					}
+					return a.leafSize(d, at, w)
+				}, LayoutRevision: d.layoutRevision,
 				CodeHeaderHeight:       32,
 				ParagraphTrailingSpace: timedTaskTrailingSpace,
 				OnTaskToggle:           func(start int, at time.Time) bool { return a.toggleTimedTask(d, start, at) },
@@ -51,7 +66,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 				DrawAttachment:         a.drawPageReferenceIcon,
 				OnLink: func(link string) {
 					if !a.openReference(link) && ui.SafeToOpen(link) {
-						c.OpenURL(link)
+						services.OpenURL(link)
 					}
 				},
 				LeadingSpace: top + 76 + pageIconSpace(d.page) + float32(len(sortedChildren(a.pages, d.page.ID)))*32,
@@ -69,7 +84,10 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 			// Keep native task hit testing, selection and undo; only replace the
 			// rounded marker paint, since MyGo has no task-corner theme option.
 			a.blockReferenceHighlight(c, d, editor)
+			a.urlPasteView(c, d, editor)
+			a.linkHoverView(c, d, editor)
 			a.attachmentControls(c, d)
+			a.mathControls(c, d, editor)
 			a.codeControls(c, d)
 			a.timedTaskControls(c, d)
 			a.leafControls(c, d)
@@ -184,7 +202,7 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			moveParagraph(d.doc, drag.Index, box.Index)
 		}
 		blockID := d.doc.Text().ParagraphStyleAt(box.Start).ID
-		menuHere := a.blockMenu && a.blockID == blockID
+		menuHere := a.blockMenu && a.blockMenuPage == d.page.ID && a.blockID == blockID
 		if menuHere {
 			visible = true
 		}
@@ -213,14 +231,16 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			a.editorDraft = d
 			a.editorHandle = d.editor
 			a.blockID, a.blockMenu = blockID, !menuHere
+			a.blockMenuPage = d.page.ID
 			d.doc.SetSelection(box.Start, box.Start)
 			visible = true
 		}
-		if a.blockMenu && a.blockID == blockID {
+		if a.blockMenu && a.blockMenuPage == d.page.ID && a.blockID == blockID {
 			a.blockMenuPanel(c, handle, d, box.Index)
 		}
 	}
-	if !visible && a.editorDraft == d {
+	// Nested Leaf editors must not dismiss a menu owned by their page.
+	if !visible && a.blockMenuPage == d.page.ID {
 		a.blockMenu = false
 	}
 }
