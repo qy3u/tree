@@ -61,6 +61,8 @@ type app struct {
 	tabs                                      []pageTab
 	activeTab                                 int
 	revealTab                                 bool
+	tabScroll                                 ui.ScrollState
+	tabDragTick                               time.Time
 	win                                       *mygo.Window
 	hide                                      func()
 	quitting                                  bool

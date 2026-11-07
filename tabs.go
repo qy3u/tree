@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -20,6 +21,61 @@ func (t pageTab) page() string { return t.History[t.Position] }
 type tabSession struct {
 	Tabs   []pageTab `json:"tabs"`
 	Active int       `json:"active"`
+}
+
+type tabDrag string
+
+// slot is a boundary in the original order, including before/after all tabs.
+// Keep the active tab by identity: reordering must not navigate or reload it.
+func (a *app) reorderTab(id string, slot int) {
+	from := -1
+	for i, tab := range a.tabs {
+		if tab.ID == id {
+			from = i
+			break
+		}
+	}
+	if from < 0 || slot < 0 || slot > len(a.tabs) {
+		return
+	}
+	to := slot
+	if to > from {
+		to--
+	}
+	if to == from {
+		return
+	}
+	activeID := a.tabs[a.activeTab].ID
+	tabs := append([]pageTab(nil), a.tabs...)
+	moved := tabs[from]
+	tabs = append(tabs[:from], tabs[from+1:]...)
+	tabs = append(tabs, pageTab{})
+	copy(tabs[to+1:], tabs[to:])
+	tabs[to] = moved
+	active := 0
+	for i, tab := range tabs {
+		if tab.ID == activeID {
+			active = i
+		}
+	}
+	data, err := json.Marshal(tabSession{tabs, active})
+	if err == nil {
+		err = a.store.SetSetting("tabs", string(data))
+	}
+	if err != nil {
+		a.report(err)
+		return
+	}
+	a.tabs, a.activeTab = tabs, active
+}
+
+func tabInsertionLine(c *ui.Context, right bool, height float32) {
+	line := ui.Box(c).Label("标签页插入位置").Absolute().Top(0).Width(3).Height(height).Background(ui.Hex("#8bb6e8"))
+	if right {
+		line.Right(0)
+	} else {
+		line.Left(0)
+	}
 }
 
 func (a *app) restoreTabs() {
@@ -130,6 +186,9 @@ func (a *app) navigateTab(delta int) {
 	a.showTab()
 }
 func (a *app) tabBar(c *ui.Context) {
+	var dropped tabDrag
+	dropSlot := -1
+	dragging := false
 	reveal := a.revealTab
 	a.revealTab = false
 	height := max(c.TitleBar().Height, float32(36))
@@ -153,7 +212,21 @@ func (a *app) tabBar(c *ui.Context) {
 			}
 		})
 		ui.Box(c).Width(1).Background(line)
-		ui.ScrollHorizontal(c).Width(tabsWidth).Shrink(0).Children(func() {
+		scroll := ui.ScrollHorizontal(c).Width(tabsWidth).Shrink(0).TrackScroll(&a.tabScroll)
+		x, _, _ := scroll.PointerPosition()
+		slot := max(0, min(len(a.tabs), int((x+a.tabScroll.X+95)/190)))
+		drag, over := ui.DragOver[tabDrag](scroll)
+		if value, ok := ui.Drop[tabDrag](scroll); ok {
+			dropped, dropSlot = value, slot
+		}
+		// Resolve the boundary from the scroll offset, even when the pointer
+		// stays still while the strip scrolls beneath it.
+		for i, t := range a.tabs {
+			if string(drag) == t.ID && (slot == i || slot == i+1) {
+				over = false
+			}
+		}
+		scroll.Children(func() {
 			ui.Row(c).Height(height).Children(func() {
 				for i, t := range a.tabs {
 					label := "新标签页"
@@ -164,13 +237,18 @@ func (a *app) tabBar(c *ui.Context) {
 						label = pageTitle(p)
 					}
 					active := i == a.activeTab
-					tab := ui.Row(c.Key(t.ID)).Width(190).Height(height).Shrink(0).AlignItems(ui.Center)
+					tab := ui.Row(c.Key(t.ID)).Width(190).Height(height).Shrink(0).AlignItems(ui.Center).Drag(tabDrag(t.ID))
+					moving := tab.Dragging()
+					dragging = dragging || moving
 					if active {
 						tab.Background(paper)
 					}
+					if moving {
+						tab.Background(paper).Shadow(0, 6, 16, 0, ui.RGBA(0, 0, 0, .18)).Opacity(.25)
+					}
 					tab.Children(func() {
 						color := muted
-						if active {
+						if active || moving {
 							color = ink
 						}
 						if quietButton(c.Key("select"), "").Label(fmt.Sprintf("切换标签页 %d：%s", i+1, label)).Grow(1).MinWidth(0).Height(height).Radius(0).Padding(0, 14).Gap(6).AlignItems(ui.Center).Children(func() {
@@ -186,9 +264,9 @@ func (a *app) tabBar(c *ui.Context) {
 						}
 						close := iconButton(c.Key("close"), "close", fmt.Sprintf("关闭标签页 %d", i+1)).Size(22, 22).Padding(4).Margin(0, 5, 0, 0)
 						if len(a.tabs) == 1 {
-							close.Tooltip("退出 Tree")
+							close.Tooltip("隐藏 Tree")
 						}
-						if !active && !tab.Hovered() {
+						if !active && !tab.Hovered() && !moving {
 							close.Opacity(0)
 						}
 						if close.Clicked() {
@@ -198,6 +276,9 @@ func (a *app) tabBar(c *ui.Context) {
 						if !active {
 							ui.Box(c).Absolute().Bottom(0).Left(0).Right(0).Height(1).Background(line)
 						}
+						if over && (slot == i || slot == len(a.tabs) && i == len(a.tabs)-1) {
+							tabInsertionLine(c, slot != i, height)
+						}
 					})
 					if active && reveal {
 						tab.ScrollIntoView()
@@ -205,11 +286,47 @@ func (a *app) tabBar(c *ui.Context) {
 				}
 			})
 		})
-		if iconButton(c, "plus", "新建标签页").Size(42, height).Shrink(0).Radius(0).Clicked() {
+		// MyGo's built-in drag scrolling is vertical. Scroll the tab strip at
+		// either edge so tabs beyond the viewport remain reachable while held.
+		if x, _, over := scroll.PointerPosition(); dragging && over {
+			direction := float32(0)
+			if x < 28 {
+				direction = -1
+			} else if x > tabsWidth-28 {
+				direction = 1
+			}
+			dt := float32(c.Now().Sub(a.tabDragTick).Seconds())
+			if a.tabDragTick.IsZero() {
+				dt = 1.0 / 60
+			}
+			a.tabDragTick = c.Now()
+			next := max(float32(0), min(a.tabScroll.MaxX, a.tabScroll.X+direction*480*min(dt, .05)))
+			if direction != 0 && next != a.tabScroll.X {
+				a.tabScroll.X = next
+				c.Invalidate()
+			}
+			if direction < 0 && a.tabScroll.X > 0 || direction > 0 && a.tabScroll.X < a.tabScroll.MaxX {
+				c.After(time.Second / 60)
+			}
+		} else {
+			a.tabDragTick = time.Time{}
+		}
+		plus := iconButton(c, "plus", "新建标签页").Size(42, height).Shrink(0).Radius(0)
+		if _, over := ui.DragOver[tabDrag](plus); over {
+			plus.Children(func() { tabInsertionLine(c, false, height) })
+		}
+		if value, ok := ui.Drop[tabDrag](plus); ok {
+			dropped, dropSlot = value, len(a.tabs)
+		}
+		if plus.Clicked() {
 			a.showTabPicker()
 		}
 		ui.Box(c).Grow(1)
 	})
+	if dropSlot >= 0 {
+		a.reorderTab(string(dropped), dropSlot)
+		c.Invalidate()
+	}
 }
 func (a *app) newTabView(c *ui.Context) {
 	ui.Scroll(c).Grow(1).MinHeight(0).Padding(72, 48).Children(func() {
