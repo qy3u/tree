@@ -14,6 +14,7 @@ import (
 // Leaf is a knowledge unit owned by a page. Its content uses the same native
 // editing primitives, but its identity and lifecycle belong to the whole unit.
 type Leaf struct {
+	Locked  bool   `json:"locked,omitempty"`
 	Title   string `json:"title"`
 	Content Body   `json:"content"`
 }
@@ -111,9 +112,28 @@ func (a *app) syncLeaf(d *draft) {
 		return
 	}
 	d.page.Body.Text = d.doc.Text()
-	d.parent.page.Body.Leaves[d.leafID] = Leaf{Title: d.page.Title, Content: d.page.Body}
+	leaf := d.parent.page.Body.Leaves[d.leafID]
+	leaf.Title, leaf.Content = d.page.Title, d.page.Body
+	d.parent.page.Body.Leaves[d.leafID] = leaf
 	d.parent.dirty = true
 	d.version, d.title, d.dirty = d.doc.Version(), d.page.Title, false
+}
+
+func (a *app) toggleLeafLock(d *draft, id string) {
+	v := a.leafView(d, id)
+	if v == nil {
+		return
+	}
+	a.syncLeaf(v.draft)
+	leaf := d.page.Body.Leaves[id]
+	leaf.Locked = !leaf.Locked
+	d.page.Body.Leaves[id] = leaf
+	d.dirty = true
+	v.focusTitle, v.focusBody = false, false
+	a.dismissSlash()
+	a.editorDraft, a.editorHandle = d, d.editor
+	d.editor.Focus()
+	a.changed(d)
 }
 
 func (a *app) createLeaf(d *draft) {
@@ -158,6 +178,7 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 			continue
 		}
 		child := v.draft
+		locked := d.page.Body.Leaves[id].Locked
 		r := box.Rect
 		card := ui.Column(c.Key("leaf:"+id)).Label("Leaf 知识单元").Absolute().Left(gutterWidth+r.X).Top(r.Y).Width(r.W).Height(r.H).AlignItems(ui.Stretch).Background(paper).Border(1, line).Radius(8).Clip()
 		card.Children(func() {
@@ -178,7 +199,18 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 					}
 					c.After(0)
 				}
-				ui.Icon(c, icons["leaf"]).FontSize(17).TextColor(muted)
+				lockLabel, color := "锁定 Leaf", muted
+				if locked {
+					lockLabel, color = "解锁 Leaf", ui.Hex("#38965b")
+				}
+				if iconButton(c, "leaf", lockLabel).Size(24, 28).TextColor(color).Clicked() {
+					a.toggleLeafLock(d, id)
+					locked = d.page.Body.Leaves[id].Locked
+				}
+				if locked {
+					ui.Text(c, leafDisplayTitle(child.page.Title)).FontSize(18).Bold().Height(32).Grow(1).MinWidth(0)
+					return
+				}
 				title := ui.TextInputBase(c.Key("leaf-title:"+id), &child.page.Title).Label("Leaf 标题").Placeholder("新 Leaf").PlaceholderColor(muted).FontSize(18).Bold().Height(32).Grow(1).MinWidth(0).FocusRing(false)
 				if v.focusTitle {
 					title.Focus()
@@ -219,17 +251,21 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 			area.Children(func() {
 				gutter := ui.Box(c).Width(gutterWidth)
 				editor := richtext.EditorBase(c.Key("leaf-body:"+id), child.doc, richtext.EditorOptions{
+					OnAttachmentClick: func(start int, at *richtext.Attachment) bool { return a.clickMath(child, start, at) },
 					AttachmentSize: func(at *richtext.Attachment, w float32) (float32, float32) {
 						if _, ok := mathSource(at); ok && !isInlineMath(at) {
 							return w, at.Height
 						}
 						return 0, 0
 					},
-					FitContent: true, Label: "Leaf 正文", Placeholder: "写下这段知识…", Font: notebookFont, Theme: &notebookTheme,
+					ReadOnly: locked, FitContent: true, Label: "Leaf 正文", Placeholder: "写下这段知识…", Font: notebookFont, Theme: &notebookTheme,
 					CodeHeaderHeight: 32, ParagraphTrailingSpace: timedTaskTrailingSpace,
 					OnTyped:     func(s string) bool { return a.typedMath(child, s) },
 					BeforePaste: func(data transfer.Data) bool { return a.pasteMath(child, data) || a.pasteWebURL(child, data) },
 					BeforeKey: func(key ui.Key, mods ui.Modifiers) bool {
+						if locked {
+							return false
+						}
 						if a.mathEnter(child, key, mods) || a.urlPasteKey(child, key, mods) {
 							return true
 						}
@@ -242,15 +278,22 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 						if !a.openReference(link) && ui.SafeToOpen(link) {
 							services.OpenURL(link)
 						}
-					}, OnLinkCommand: a.openLink,
+					}, OnLinkCommand: func() {
+						if !locked {
+							a.openLink()
+						}
+					},
 				}).Grow(1).MinWidth(0).FocusRing(false).Bind(&child.editor)
 				if v.focusBody {
 					editor.Focus()
 					v.focusBody = false
 				}
-				if editor.Focused() {
+				if editor.Focused() && !locked {
 					a.editorDraft = child
 					a.editorHandle = child.editor
+				}
+				if locked {
+					return
 				}
 				active := child.gutter.update(child.doc, editor.Focused(), x, y, over)
 				gutter.Children(func() { a.blockGutter(c, child, y, over, active) })

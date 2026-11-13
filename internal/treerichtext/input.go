@@ -553,6 +553,27 @@ func (v *view) press(ev ui.InputEvent) bool {
 	}
 	v.commitCompose()
 	x, y := v.contentPoint(ev.X, ev.Y)
+	if !v.opts.ReadOnly && ev.Mods == 0 && v.opts.OnAttachmentClick != nil {
+		for i := v.first; i <= v.last && i < len(v.paras); i++ {
+			pv := v.paraLayout(i)
+			ox, oy := v.origin(i)
+			for _, object := range pv.layout.Objects() {
+				r := object.Rect
+				rx, ry := ox+r.X, oy+float64(r.Y)
+				if x < rx || x >= rx+r.W || y < ry || y >= ry+float64(r.H) {
+					continue
+				}
+				start := v.global(i, pv.runeOfUnit(object.Index))
+				at := v.shown.AttributesAt(start).Attachment
+				handled := false
+				v.command(func(_ *Document) { handled = v.opts.OnAttachmentClick(start, at) })
+				if handled {
+					v.dragging = false
+					return true
+				}
+			}
+		}
+	}
 	if !v.opts.ReadOnly && ev.Clicks == 1 && ev.Mods == 0 && x >= 0 && x < v.width && len(v.paras) > 0 {
 		last := len(v.paras) - 1
 		if v.para(last).style.CodeBlock {
@@ -699,7 +720,7 @@ func (v *view) taskBox(x float32, y float64) (int, bool) {
 
 // overScrollbar reports whether x of the element is on the scroll bar.
 func (v *view) overScrollbar(x float32) bool {
-	return v.hs.top(len(v.paras)) > float64(v.viewH) && x >= v.rect.W-scrollbarWidth
+	return !v.opts.HideScrollbar && !v.opts.FitContent && v.hs.top(len(v.paras)) > float64(v.viewH) && x >= v.rect.W-scrollbarWidth
 }
 
 // bar returns the scroll bar, in the element.

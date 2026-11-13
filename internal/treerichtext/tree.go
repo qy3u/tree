@@ -96,3 +96,17 @@ func (d *Document) ScrollBy(dy float32) bool {
 	}
 	return false
 }
+
+// RestoreViewport keeps a structural edit from scrolling to its new caret.
+// Applied after synchronization and measurement on the next layout.
+func (d *Document) RestoreViewport(offset float32) {
+	d.lock()
+	v := d.shownIn.Value()
+	d.mu.Unlock()
+	if v == nil {
+		return
+	}
+	y := float64(max(0, offset))
+	v.restoreViewport = &y
+	v.services.Invalidate()
+}

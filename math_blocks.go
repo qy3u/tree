@@ -243,6 +243,14 @@ type mathEditState struct {
 	inline  bool
 }
 
+func (a *app) clickMath(d *draft, start int, at *richtext.Attachment) bool {
+	if _, ok := mathSource(at); !ok {
+		return false
+	}
+	a.beginMathEdit(d, start)
+	return true
+}
+
 func (a *app) beginMathEdit(d *draft, start int) {
 	source, ok := mathSource(d.doc.Text().AttributesAt(start).Attachment)
 	if !ok {
@@ -302,14 +310,10 @@ func (a *app) mathControls(c *ui.Context, d *draft, editor ui.Element) {
 			continue
 		}
 		r := box.Rect
-		target := ui.Box(c.Key(fmt.Sprintf("formula:%s:%d", d.page.ID, box.Start))).AttachTo(editor, ui.AnchorTopStart, ui.AnchorTopStart).
-			Left(r.X).Top(r.Y).Size(r.W, r.H).Label("公式").Cursor(ui.CursorPointer)
+		target := ui.Box(c.Key(fmt.Sprintf("formula:%s:%d", d.page.ID, box.Start))).Absolute().
+			Left(gutterWidth+r.X).Top(r.Y).Size(r.W, r.H).Label("公式").PassThrough()
 		if target.Hovered() {
 			target.Background(ui.RGBA(0, 0, 0, .025)).Radius(4)
-		}
-		if target.Clicked() {
-			a.beginMathEdit(d, box.Start)
-			s = a.mathEdit
 		}
 		if s == nil || s.draft != d || s.start != box.Start {
 			continue

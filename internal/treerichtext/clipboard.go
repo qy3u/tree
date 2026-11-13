@@ -281,7 +281,33 @@ func (v *view) paste(matchStyle bool) {
 	v.lockedSync()
 	a, z := v.selection() // as the sync moved it
 	v.lockedPublish()
-	v.lockedEdit(func(e *Edit) { e.Replace(a, z, t) })
+	// A rich clipboard paragraph supplies its own block style. Filling an
+	// existing task (including an empty /todo) must not replace that task
+	// with the clipboard's ordinary paragraph style.
+	start, end := v.shown.ParagraphRange(a)
+	style := v.shown.ParagraphStyleAt(a)
+	keepTask := style.List == Tasks && z <= end
+	v.lockedEdit(func(e *Edit) {
+		e.Replace(a, z, t)
+		if keepTask {
+			e.FormatParagraphs(start, start, func(p *ParagraphStyle) { *p = style })
+			// Replacement at a paragraph's start can move its ID to the last
+			// inserted line. The existing task and its timer stay on the first.
+			first := true
+			e.FormatParagraphs(start, a+t.Len(), func(p *ParagraphStyle) {
+				if first {
+					first = false
+					return
+				}
+				if p.ID == style.ID {
+					p.ID = ""
+				}
+				if style.Timer.Enabled() && p.Timer.HistoryID == style.Timer.HistoryID {
+					p.Timer = p.Timer.FreshCopy()
+				}
+			})
+		}
+	})
 	caret := a + t.Len()
 	v.selAnchor, v.caret = caret, caret
 	d.anchor, d.caret = caret, caret

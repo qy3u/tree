@@ -32,6 +32,11 @@ type EditorOptions struct {
 	LayoutRevision uint64
 	// FitContent lays out every paragraph for an inline, non-scrolling editor.
 	FitContent bool
+	// HideScrollbar hides the internal scroll thumb and its hit area while
+	// retaining wheel, keyboard and caret scrolling.
+	HideScrollbar bool
+	// OnAttachmentClick handles a single unmodified click before placing a caret.
+	OnAttachmentClick func(start int, attachment *Attachment) bool
 	// LeadingSpace reserves scrollable room for the page title and child links.
 	LeadingSpace float32
 	// CodeHeaderHeight reserves room for application-owned code controls.
@@ -139,14 +144,15 @@ type view struct {
 	// the room around the text in the element.
 	width, viewH float32
 	// laidLook is the look the layouts were made in.
-	laidLook    lookKey
-	padX, padY  float32
-	rect        ui.Rect
-	scroll      float64
-	anchor      int
-	anchorOff   float64
-	reveal      bool
-	first, last int
+	laidLook        lookKey
+	padX, padY      float32
+	rect            ui.Rect
+	scroll          float64
+	anchor          int
+	anchorOff       float64
+	reveal          bool
+	restoreViewport *float64
+	first, last     int
 	// The selection, in runes: anchor and caret, and the caret's visual
 	// edge.
 	selAnchor, caret int
@@ -853,6 +859,20 @@ func (v *view) layout(w, h float32) {
 		v.reveal = false
 	}
 	v.estimate()
+	if v.restoreViewport != nil {
+		offset := *v.restoreViewport
+		v.restoreViewport = nil
+		// A whole-document reorder invalidates heights. Measure the prefix
+		// before restoring a pixel offset, rather than anchoring to old indexes.
+		for i := 0; i < len(v.paras); i++ {
+			v.paraLayout(i)
+			if v.hs.top(i+1) > offset+float64(h) {
+				break
+			}
+		}
+		v.setScroll(offset)
+		v.reveal = false
+	}
 	v.place(h)
 	if v.reveal {
 		v.reveal = false

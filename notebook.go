@@ -41,9 +41,11 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 		row.Children(func() {
 			gutter := ui.Box(c).Width(gutterWidth).Clip()
 			editor := richtext.EditorBase(c.Key("body:"+d.page.ID), d.doc, richtext.EditorOptions{
-				OnTyped:      func(s string) bool { return a.typedMath(d, s) },
-				BeforePaste:  func(data transfer.Data) bool { return a.pasteMath(d, data) || a.pasteWebURL(d, data) },
-				OnPasteImage: func() bool { return a.nativePasteImage(d, services) },
+				OnAttachmentClick: func(start int, at *richtext.Attachment) bool { return a.clickMath(d, start, at) },
+				HideScrollbar:     true,
+				OnTyped:           func(s string) bool { return a.typedMath(d, s) },
+				BeforePaste:       func(data transfer.Data) bool { return a.pasteMath(d, data) || a.pasteWebURL(d, data) },
+				OnPasteImage:      func() bool { return a.nativePasteImage(d, services) },
 				BeforeKey: func(key ui.Key, mods ui.Modifiers) bool {
 					if a.mathEnter(d, key, mods) || a.urlPasteKey(d, key, mods) {
 						return true
@@ -199,7 +201,7 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			target.Background(line)
 		}
 		if drag, ok := ui.Drop[paragraphDrag](target); ok && drag.Page == d.page.ID {
-			moveParagraph(d.doc, drag.Index, box.Index)
+			a.dragParagraph(d, drag.Index, box.Index)
 		}
 		blockID := d.doc.Text().ParagraphStyleAt(box.Start).ID
 		menuHere := a.blockMenu && a.blockMenuPage == d.page.ID && a.blockID == blockID
@@ -225,7 +227,7 @@ func (a *app) blockGutter(c *ui.Context, d *draft, pointerY float32, over bool, 
 			}
 		}
 		if drag, ok := ui.Drop[paragraphDrag](handle); ok && drag.Page == d.page.ID {
-			moveParagraph(d.doc, drag.Index, box.Index)
+			a.dragParagraph(d, drag.Index, box.Index)
 		}
 		if handle.Clicked() {
 			a.editorDraft = d
@@ -287,4 +289,23 @@ func paintTaskBoxes(p *ui.Painter, r ui.Rect, doc *richtext.Document) {
 			}
 		}
 	})
+}
+
+func (a *app) dragParagraph(d *draft, from, to int) {
+	var parentOffset float32
+	if d.parent != nil {
+		parentOffset = d.parent.doc.ScrollOffset()
+	}
+	if !moveParagraph(d.doc, from, to) {
+		return
+	}
+	if d.parent != nil {
+		if v := d.parent.leafViews[d.leafID]; v != nil {
+			_, v.caret = d.doc.Selection()
+			v.version = d.doc.Version()
+			v.reveal = false
+		}
+		d.parent.doc.RestoreViewport(parentOffset)
+	}
+	a.changed(d)
 }

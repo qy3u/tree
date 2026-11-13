@@ -11,6 +11,7 @@ import (
 // Each knowledge unit has its own file. Its editable content stays structured
 // and line-diffable; view state and measured card sizes are never exported.
 type gitLeaf struct {
+	Locked bool                `json:"locked,omitempty"`
 	Title  string              `json:"title"`
 	Order  []string            `json:"block_order"`
 	Blocks map[string]gitBlock `json:"blocks"`
@@ -18,7 +19,7 @@ type gitLeaf struct {
 }
 
 func exportGitLeaf(id string, leaf Leaf) (gitLeaf, error) {
-	out := gitLeaf{Title: leaf.Title, Order: []string{}, Blocks: map[string]gitBlock{}}
+	out := gitLeaf{Locked: leaf.Locked, Title: leaf.Title, Order: []string{}, Blocks: map[string]gitBlock{}}
 	paras, err := storedParagraphs(leaf.Content.Text)
 	if err != nil {
 		return out, err
@@ -55,7 +56,7 @@ func exportGitLeaf(id string, leaf Leaf) (gitLeaf, error) {
 }
 
 func importGitLeaf(id string, in gitLeaf, assets map[string]gitAsset) (Leaf, error) {
-	leaf := Leaf{Title: in.Title, Content: emptyBody()}
+	leaf := Leaf{Locked: in.Locked, Title: in.Title, Content: emptyBody()}
 	if len(in.Order) == 0 || len(in.Order) != len(in.Blocks) {
 		return leaf, errors.New("Leaf 内容顺序无效")
 	}

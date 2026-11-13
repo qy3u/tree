@@ -200,6 +200,7 @@ func copyTable(t Table) Table {
 
 // Move a whole paragraph in one undo step. Selection and IDs follow the text.
 func moveParagraph(doc *richtext.Document, from, to int) bool {
+	offset := doc.ScrollOffset()
 	text := doc.Text()
 	var paras []richtext.Paragraph
 	for _, p := range text.Paragraphs() {
@@ -229,6 +230,7 @@ func moveParagraph(doc *richtext.Document, from, to int) bool {
 		}
 		e.Select(start, start)
 	})
+	doc.RestoreViewport(offset)
 	return true
 }
 func nilParagraph() richtext.Paragraph { return richtext.Paragraph{} }
