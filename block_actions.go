@@ -103,9 +103,13 @@ func (a *app) blockActions(c *ui.Context, d *draft, index int) {
 		if quietButton(c, "转为"+cmd.Label).KeepFocus().Height(28).Shrink(0).Clicked() {
 			// The menu belongs to this block, independently of editor focus
 			// or a selection changed while the popup was open.
-			convertBlock(d.doc, index, cmd.Style)
-			a.changed(d)
-			a.focusBlockEditor(d)
+			if cmd.ID == "ttodo" && !d.doc.Text().ParagraphStyleAt(start).Timer.Enabled() {
+				a.openBlockTaskEstimate(d, index)
+			} else {
+				convertBlock(d.doc, index, cmd.Style)
+				a.changed(d)
+				a.focusBlockEditor(d)
+			}
 			a.blockMenu = false
 		}
 	}

@@ -34,7 +34,7 @@ func gitFixture(t *testing.T) (*Store, *Page, *Page) {
 	}
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	start := time.Date(2026, 11, 3, 23, 50, 0, 0, loc)
-	timer := richtext.TaskTimer{State: richtext.TimerIdle}.Start(start)
+	timer := richtext.TaskTimer{State: richtext.TimerIdle, EstimatedNS: int64(30 * time.Minute), HasEstimate: true}.Start(start)
 	segments := splitTaskTime(timer, start.Add(20*time.Minute))
 	timer = timer.Stop(richtext.TimerPaused, start.Add(20*time.Minute))
 	timer.HistoryID = "active-history"

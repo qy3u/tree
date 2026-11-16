@@ -90,13 +90,18 @@ func (s *Store) initializeIdentities() error {
 	if err != nil {
 		return err
 	}
+	now := time.Now()
 	var statements []sqlite.Statement
 	for _, p := range pages {
 		text := identifyStoredText(p.Body.Text)
-		if text.Equal(p.Body.Text) {
+		changed := !text.Equal(p.Body.Text)
+		p.Body.Text = text
+		if backfillTimedTaskEstimates(&p.Body, now) {
+			changed = true
+		}
+		if !changed {
 			continue
 		}
-		p.Body.Text = text
 		body, err := json.Marshal(p.Body)
 		if err != nil {
 			return err

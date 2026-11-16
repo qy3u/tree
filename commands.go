@@ -115,7 +115,7 @@ func (a *app) dismissSlash() {
 	a.slash = nil
 }
 func (a *app) syncSlash(d *draft, editor ui.Element) {
-	if a.tableOpen || a.errorOpen || a.linkOpen || a.searchOpen || a.insertOpen {
+	if a.tableOpen || a.errorOpen || a.linkOpen || a.searchOpen || a.insertOpen || (a.taskEstimate != nil && a.taskEstimate.open) {
 		return
 	}
 	s := findSlash(d)
@@ -280,6 +280,9 @@ func (a *app) runBlockCommand(d *draft, cmd blockCommand, fromSlash bool) {
 		a.pendingSlash = nil
 	case "table":
 		a.openTable()
+		return
+	case "ttodo":
+		a.openTaskEstimate(d)
 		return
 	default:
 		start, end, remove := a.pendingCommandRange(d)

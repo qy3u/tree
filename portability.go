@@ -190,6 +190,7 @@ func (s *Store) RestoreBackup(path string) (string, error) {
 		if err = remapBodyAssets(&p.Body, assets, leafIDs); err != nil {
 			return "", err
 		}
+		backfillTimedTaskEstimates(&p.Body, time.Now())
 
 		for key, check := range backup.TaskChecks {
 			parts := strings.Split(key, "/")

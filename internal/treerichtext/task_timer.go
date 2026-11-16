@@ -8,6 +8,8 @@ import "time"
 // closing and reopening the document without writing on every tick.
 type TaskTimer struct {
 	State         TaskTimerState `json:"state,omitempty"`
+	EstimatedNS   int64          `json:"estimatedNs,omitempty"`
+	HasEstimate   bool           `json:"hasEstimate,omitempty"`
 	ElapsedNS     int64          `json:"elapsedNs,omitempty"`
 	StartedAtNS   int64          `json:"startedAtNs,omitempty"`
 	StartedZone   string         `json:"startedZone,omitempty"`
@@ -59,7 +61,7 @@ func (t TaskTimer) Stop(state TaskTimerState, now time.Time) TaskTimer {
 // the original task's recorded time in later daily statistics.
 func (t TaskTimer) FreshCopy() TaskTimer {
 	if t.Enabled() {
-		return TaskTimer{State: TimerIdle}
+		return TaskTimer{State: TimerIdle, EstimatedNS: max(0, t.EstimatedNS), HasEstimate: t.HasEstimate}
 	}
 	return TaskTimer{}
 }
@@ -69,7 +71,7 @@ func (t TaskTimer) normalized() TaskTimer {
 	case TimerNone:
 		return TaskTimer{}
 	case TimerIdle:
-		return TaskTimer{State: TimerIdle}
+		return TaskTimer{State: TimerIdle, EstimatedNS: max(0, t.EstimatedNS), HasEstimate: t.HasEstimate}
 	case TimerRunning:
 		if t.StartedAtNS <= 0 {
 			t.State = TimerPaused
@@ -78,6 +80,7 @@ func (t TaskTimer) normalized() TaskTimer {
 	default:
 		return TaskTimer{}
 	}
+	t.EstimatedNS = max(0, t.EstimatedNS)
 	t.ElapsedNS = max(0, t.ElapsedNS)
 	if t.State != TimerRunning {
 		t.StartedAtNS = 0

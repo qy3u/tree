@@ -16,6 +16,9 @@ func TestPastePreservesExistingTodo(t *testing.T) {
 					_, tt, d, _ := mathTestEditor(t, leaf)
 					tt.Type(command)
 					tt.Key(0, ui.KeyEnter)
+					if command == "/ttodo" {
+						tt.Key(0, ui.KeyEnter)
+					}
 					before := d.doc.Text().ParagraphStyleAt(0)
 					if before.List != richtext.Tasks {
 						t.Fatal("task not created")
@@ -53,6 +56,7 @@ func TestPastePreservesExistingTodo(t *testing.T) {
 func TestMultilineRichPasteKeepsTaskIdentity(t *testing.T) {
 	_, tt, d, _ := mathTestEditor(t, false)
 	tt.Type("/ttodo")
+	tt.Key(0, ui.KeyEnter)
 	tt.Key(0, ui.KeyEnter)
 	original := d.doc.Text().ParagraphStyleAt(0)
 	tt.SetClipboardData(transfer.New(transfer.NewItem(transfer.Bytes(transfer.HTML, []byte(`<p>第一行</p><p>第二行</p>`)))))

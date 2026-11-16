@@ -280,7 +280,7 @@ func (v *view) enter() {
 			}
 			s.Checked = false
 			if s.Timer.Enabled() {
-				s.Timer = TaskTimer{State: TimerIdle}
+				s.Timer = s.Timer.FreshCopy()
 			}
 		})
 	})

@@ -91,7 +91,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 			a.attachmentControls(c, d)
 			a.mathControls(c, d, editor)
 			a.codeControls(c, d)
-			a.timedTaskControls(c, d)
+			a.timedTaskControls(c, d, editor)
 			a.leafControls(c, d)
 			scroll := d.doc.ScrollOffset()
 			ui.Column(c.Key("page-heading:" + d.page.ID)).Absolute().Left(gutterWidth).Right(0).Top(top - scroll).Gap(20).Children(func() {
@@ -141,7 +141,7 @@ func (a *app) documentView(c *ui.Context, d *draft) {
 				}
 			}
 			start, end := d.doc.Selection()
-			if a.editorDraft == d && start != end && a.slash == nil && !a.insertOpen && !a.linkOpen && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
+			if a.editorDraft == d && start != end && a.slash == nil && !a.insertOpen && !a.linkOpen && (a.taskEstimate == nil || !a.taskEstimate.open) && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
 				for _, box := range d.doc.VisibleParagraphs() {
 					_, paraEnd := d.doc.Text().ParagraphRange(box.Start)
 					if paraEnd < min(start, end) || box.Top < 0 {

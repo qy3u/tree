@@ -437,7 +437,7 @@ func (a *app) dialogs(c *ui.Context) {
 			}
 		})
 	})
-	if !a.tableOpen {
+	if !a.tableOpen && (a.taskEstimate == nil || !a.taskEstimate.open) {
 		a.pendingSlash = nil
 	}
 }

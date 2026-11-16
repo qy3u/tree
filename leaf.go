@@ -303,7 +303,7 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 				a.attachmentControls(c, child)
 				a.mathControls(c, child, editor)
 				a.codeControls(c, child)
-				a.timedTaskControls(c, child)
+				a.timedTaskControls(c, child, editor)
 				_, caret := child.doc.Selection()
 				if editor.Focused() && (caret != v.caret || child.doc.Version() != v.version) {
 					v.reveal = true
@@ -323,7 +323,7 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 					}
 				}
 				start, end := child.doc.Selection()
-				if a.editorDraft == child && start != end && a.slash == nil && !a.linkOpen && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
+				if a.editorDraft == child && start != end && a.slash == nil && !a.linkOpen && (a.taskEstimate == nil || !a.taskEstimate.open) && (editor.Focused() || a.formatHandle.FocusWithin(c)) {
 					anchor := ui.Box(c).Absolute().Left(gutterWidth).Top(0).Size(1, 1)
 					ui.Overlay(c, func() {
 						ui.Row(c.Key("leaf-format")).Bind(&a.formatHandle).AttachTo(anchor, ui.AnchorTopStart, ui.AnchorBottomStart).Padding(4).Gap(2).Background(paper).Border(1, line).Radius(6).Children(func() { a.toolbar(c, child) })

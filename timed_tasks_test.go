@@ -21,9 +21,10 @@ func timedTaskFixture(t *testing.T) (*app, *ui.Tester, string) {
 		t.Fatal("/ttodo does not identify timed todo")
 	}
 	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeyEnter)
 	tt.Type("阅读计时任务🌲")
 	st := a.current().doc.Text().ParagraphStyleAt(0)
-	if st.List != richtext.Tasks || st.Timer.State != richtext.TimerIdle || st.Checked {
+	if st.List != richtext.Tasks || st.Timer.State != richtext.TimerIdle || !st.Timer.HasEstimate || st.Timer.EstimatedNS != int64(25*time.Minute) || st.Checked {
 		t.Fatalf("wrong initial task: %+v", st)
 	}
 	return a, tt, st.ID
@@ -340,12 +341,10 @@ func TestTimedTaskIconsFollowTextAndDurationStaysRight(t *testing.T) {
 						t.Fatalf("action shows visible text: %s", label)
 					}
 				}
-				if timer := taskStyle(t, a, id).Timer; timer.State != richtext.TimerIdle {
-					duration, _ := tt.Find("累计用时：" + id)
-					ed, _ := tt.Find("笔记正文")
-					if math.Abs(float64(duration.X+duration.W-ed.X-ed.W)) > 1 || controls.X+controls.W+8 > duration.X {
-						t.Fatalf("duration must stay right without overlap: controls %+v, duration %+v", controls, duration)
-					}
+				duration, _ := tt.Find("累计用时：" + id)
+				ed, _ := tt.Find("笔记正文")
+				if math.Abs(float64(duration.X+duration.W-ed.X-ed.W)) > 1 || controls.X+controls.W+8 > duration.X {
+					t.Fatalf("duration must stay right without overlap: controls %+v, duration %+v", controls, duration)
 				}
 			}
 			check("开始")
@@ -370,6 +369,7 @@ func TestTimedTaskCommandClickAndCopyPaste(t *testing.T) {
 	if err := tt.Click("命令：计时待办"); err != nil {
 		t.Fatal(err)
 	}
+	tt.Key(0, ui.KeyEnter)
 	tt.Type("复制计时块")
 	d := a.current()
 	id := d.doc.Text().ParagraphStyleAt(0).ID
@@ -409,3 +409,247 @@ func advanceTaskClock(tt *ui.Tester, elapsed time.Duration) {
 	tt.Advance(elapsed)
 	tt.Frame()
 }
+
+func TestTimedTaskEstimateCreationDisplayAndAdjustment(t *testing.T) {
+	a, tt := commandTestApp(t)
+	// Canceling estimate prompt preserves /ttodo text.
+	tt.Type("/ttodo")
+	tt.Key(0, ui.KeyEnter)
+	if a.taskEstimate == nil || !a.taskEstimate.open {
+		t.Fatal("estimate prompt did not open")
+	}
+	tt.Key(0, ui.KeyEscape)
+	if a.taskEstimate != nil || a.current().doc.Text().String() != "/ttodo" {
+		t.Fatalf("cancel modified document: %q", a.current().doc.Text().String())
+	}
+
+	// Custom duration via Enter replaces /ttodo and shows elapsed, estimate, and delta.
+	a.current().doc.SetText(richtext.NewText(""))
+	a.current().doc.SetSelection(0, 0)
+	a.editorHandle.Focus()
+	tt.Frame()
+	tt.Type("/ttodo")
+	tt.Key(0, ui.KeyEnter)
+	tt.Type("0")
+	tt.Key(0, ui.KeyEnter)
+	if a.taskEstimate == nil || a.taskEstimate.err == "" {
+		t.Fatal("zero estimate did not show validation error")
+	}
+	tt.Key(ui.Cmd, ui.KeyA)
+	tt.Type("90s")
+	tt.Key(0, ui.KeyEnter)
+	tt.Type("自定义预计任务")
+	id := a.current().doc.Text().ParagraphStyleAt(0).ID
+	st := taskStyle(t, a, id)
+	if !st.Timer.HasEstimate || st.Timer.EstimatedNS != int64(90*time.Second) {
+		t.Fatalf("custom estimate not applied: %+v", st.Timer)
+	}
+	if !tt.HasText("00:00") || !tt.HasText("01:30") {
+		t.Fatalf("missing idle elapsed/estimate/delta: %v", tt.Texts())
+	}
+	for _, forbidden := range []string{"预计 01:30", "剩 01:30"} {
+		if tt.HasText(forbidden) {
+			t.Fatalf("unexpected label word in %q: %v", forbidden, tt.Texts())
+		}
+	}
+
+	// Running hides delta and only shows elapsed and estimate.
+	clickTask(t, tt, id, "开始")
+	advanceTaskClock(tt, 30*time.Second)
+	if !tt.HasText("00:30") || !tt.HasText("01:30") || tt.HasText("01:00") {
+		t.Fatalf("running display should hide delta: %v", tt.Texts())
+	}
+
+	// Adjusting estimate while running updates estimate without showing delta until paused/completed.
+	if err := tt.Click("调整预计时间：" + id); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("预计时长：15 分钟"); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("00:30") || !tt.HasText("15:00") || tt.HasText("14:30") {
+		t.Fatalf("adjusted running display should hide delta: %v", tt.Texts())
+	}
+
+	// Pausing reveals elapsed, estimate, and remaining delta.
+	clickTask(t, tt, id, "暂停")
+	if !tt.HasText("00:30") || !tt.HasText("15:00") || !tt.HasText("14:30") {
+		t.Fatalf("paused elapsed/estimate/delta missing: %v", tt.Texts())
+	}
+
+	// Completing early retains elapsed, estimate, and remaining time without label words.
+	clickTask(t, tt, id, "完成")
+	if !tt.HasText("00:30") || !tt.HasText("15:00") || !tt.HasText("14:30") {
+		t.Fatalf("early completion elapsed/estimate/delta missing: %v", tt.Texts())
+	}
+
+	// Reopen, exceed estimate, verify +delta shows on pause, hides on resume, and shows on completion/termination.
+	ed, _ := tt.Find("笔记正文")
+	box := a.current().doc.VisibleParagraphs()[0]
+	tt.ClickAt(ed.X+12, ed.Y+box.FirstLineCenter)
+	if err := tt.Click("调整预计时间：" + id); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(ui.Cmd, ui.KeyA)
+	tt.Type("20s")
+	tt.Key(0, ui.KeyEnter)
+	if !tt.HasText("00:30") || !tt.HasText("00:20") || !tt.HasText("+00:10") {
+		t.Fatalf("paused overrun metrics missing: %v", tt.Texts())
+	}
+	clickTask(t, tt, id, "继续")
+	advanceTaskClock(tt, 5*time.Second)
+	if !tt.HasText("00:35") || !tt.HasText("00:20") || tt.HasText("+00:15") {
+		t.Fatalf("running overrun should hide delta: %v", tt.Texts())
+	}
+	clickTask(t, tt, id, "完成")
+	if !tt.HasText("00:35") || !tt.HasText("00:20") || !tt.HasText("+00:15") {
+		t.Fatalf("completed overrun metrics missing: %v", tt.Texts())
+	}
+	tt.ClickAt(ed.X+12, ed.Y+box.FirstLineCenter)
+	clickTask(t, tt, id, "废弃")
+	if !tt.HasText("00:35") || !tt.HasText("00:20") || !tt.HasText("+00:15") {
+		t.Fatalf("terminated overrun metrics missing: %v", tt.Texts())
+	}
+}
+
+func TestTimedTaskEstimateInLeafAndBlockConversion(t *testing.T) {
+	a, tt, root, v := createTestLeaf(t)
+	v.focusBody = true
+	tt.Frame()
+	tt.Type("/ttodo")
+	tt.Key(0, ui.KeyEnter)
+	if err := tt.Click("预计时长：1 小时"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("Leaf 预计任务")
+	st := v.draft.doc.Text().ParagraphStyleAt(0)
+	if !st.Timer.HasEstimate || st.Timer.EstimatedNS != int64(time.Hour) {
+		t.Fatalf("leaf timed task estimate wrong: %+v", st.Timer)
+	}
+	if !tt.HasText("1:00:00") {
+		t.Fatalf("leaf estimate missing: %v", tt.Texts())
+	}
+
+	// Converting an ordinary paragraph via block menu opens estimate prompt.
+	a.addPage("")
+	tt.Frame()
+	tt.Type("普通待办转计时")
+	openBlockMenu(t, a, tt, 0)
+	clickBlockMenuItem(t, tt, "转为计时待办")
+	if err := tt.Click("预计时长：30 分钟"); err != nil {
+		t.Fatal(err)
+	}
+	converted := a.current().doc.Text().ParagraphStyleAt(0)
+	if !converted.Timer.Enabled() || !converted.Timer.HasEstimate || converted.Timer.EstimatedNS != int64(30*time.Minute) {
+		t.Fatalf("block conversion estimate wrong: %+v", converted.Timer)
+	}
+	_ = root
+}
+
+func TestTimedTaskLegacyEstimateBackfill(t *testing.T) {
+	dir := t.TempDir()
+	s, err := openStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	runningStart := now.Add(-10 * time.Minute)
+	leafID := "leaf-legacy"
+	leaf := Leaf{
+		Title: "旧 Leaf",
+		Content: Body{
+			Schema: 1,
+			Text: richtext.TextOf(richtext.Paragraph{
+				Style: richtext.ParagraphStyle{
+					ID:    "leaf-paused",
+					List:  richtext.Tasks,
+					Timer: richtext.TaskTimer{State: richtext.TimerPaused, ElapsedNS: int64(7 * time.Minute)},
+				},
+				Runs: []richtext.Run{{Text: "Leaf 暂停任务"}},
+			}),
+		},
+	}
+	body := Body{
+		Schema: 2,
+		Leaves: map[string]Leaf{leafID: leaf},
+		Text: richtext.TextOf(
+			richtext.Paragraph{
+				Style: richtext.ParagraphStyle{ID: "old-idle", List: richtext.Tasks, Timer: richtext.TaskTimer{State: richtext.TimerIdle}},
+				Runs:  []richtext.Run{{Text: "旧未开始"}},
+			},
+			richtext.Paragraph{
+				Style: richtext.ParagraphStyle{ID: "old-paused", List: richtext.Tasks, Timer: richtext.TaskTimer{State: richtext.TimerPaused, ElapsedNS: int64(12 * time.Minute)}},
+				Runs:  []richtext.Run{{Text: "旧暂停"}},
+			},
+			richtext.Paragraph{
+				Style: richtext.ParagraphStyle{ID: "old-done", List: richtext.Tasks, Checked: true, Timer: richtext.TaskTimer{State: richtext.TimerCompleted, ElapsedNS: int64(45 * time.Minute)}},
+				Runs:  []richtext.Run{{Text: "旧完成"}},
+			},
+			richtext.Paragraph{
+				Style: richtext.ParagraphStyle{ID: "old-running", List: richtext.Tasks, Timer: (richtext.TaskTimer{State: richtext.TimerIdle, ElapsedNS: int64(5 * time.Minute)}).Start(runningStart)},
+				Runs:  []richtext.Run{{Text: "旧运行中"}},
+			},
+			richtext.Paragraph{
+				Style: richtext.ParagraphStyle{ID: "leaf-anchor"},
+				Runs:  []richtext.Run{{Text: string(richtext.ObjectReplacement), Attributes: richtext.Attributes{Attachment: leafAttachment(leafID)}}},
+			},
+		),
+	}
+	p, err := s.Create("", "旧计时任务", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+
+	reopened, err := openStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	pages, err := reopened.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got *Page
+	for _, item := range pages {
+		if item.ID == p.ID {
+			got = item
+			break
+		}
+	}
+	if got == nil {
+		t.Fatal("legacy page missing")
+	}
+	byID := map[string]richtext.TaskTimer{}
+	for _, para := range got.Body.Text.Paragraphs() {
+		if para.Style.Timer.Enabled() {
+			byID[para.Style.ID] = para.Style.Timer
+		}
+	}
+	if tm := byID["old-idle"]; !tm.HasEstimate || tm.EstimatedNS != 0 {
+		t.Fatalf("idle backfill wrong: %+v", tm)
+	}
+	if tm := byID["old-paused"]; !tm.HasEstimate || tm.EstimatedNS != int64(12*time.Minute) {
+		t.Fatalf("paused backfill wrong: %+v", tm)
+	}
+	if tm := byID["old-done"]; !tm.HasEstimate || tm.EstimatedNS != int64(45*time.Minute) {
+		t.Fatalf("completed backfill wrong: %+v", tm)
+	}
+	if tm := byID["old-running"]; !tm.HasEstimate || tm.EstimatedNS < int64(15*time.Minute) {
+		t.Fatalf("running backfill wrong: %+v", tm)
+	}
+	leafTimer := got.Body.Leaves[leafID].Content.Text.ParagraphStyleAt(0).Timer
+	if !leafTimer.HasEstimate || leafTimer.EstimatedNS != int64(7*time.Minute) {
+		t.Fatalf("leaf backfill wrong: %+v", leafTimer)
+	}
+	a, err := newApp(reopened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.selectPage(p.ID)
+	tt := ui.NewTester(a.view, 1120, 800)
+	if !tt.HasText("00:00") || !tt.HasText("12:00") || !tt.HasText("45:00") {
+		t.Fatalf("backfilled display missing: %v", tt.Texts())
+	}
+}
+

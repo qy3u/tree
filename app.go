@@ -34,6 +34,7 @@ type paragraphDrag struct {
 type app struct {
 	mathEdit         *mathEditState
 	urlPaste         *urlPasteState
+	taskEstimate     *taskEstimatePrompt
 	taskChecks       map[string]taskCheck
 	taskCheckTimer   *time.Timer
 	taskCheckStopped bool
