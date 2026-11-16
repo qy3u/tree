@@ -38,6 +38,14 @@ func main() {
 	mygo.App.WhenReady(func() {
 		mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu}, {Label: "文件", Submenu: a.fileMenu()}, {Role: mygo.RoleEditMenu}, {Role: mygo.RoleFormatMenu}, {Role: mygo.RoleWindowMenu}}))
 		a.win = mygo.NewWindow(mygo.WindowOptions{Title: "Tree — 本地笔记", TitleBarStyle: mygo.TitleBarHidden, Width: 1120, Height: 800, MinWidth: 850, MinHeight: 580, StateKey: "notes", Content: ui.View(a.view)})
+		a.hide = a.win.Hide
+		mygo.App.OnActivate(func(_ bool) {
+			if a.win != nil && !a.win.IsDestroyed() && (!a.win.IsVisible() || a.win.IsMinimized()) {
+				a.revealWindow()
+			}
+		})
+		a.win.OnFocus(func() { a.syncTaskNotifyPanel() })
+		a.win.OnBlur(func() { a.syncTaskNotifyPanel() })
 		if err := mygo.GlobalShortcut.Register("Cmd+,", func() {
 			a.revealWindow()
 		}); err != nil {

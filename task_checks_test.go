@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/treerichtext"
 	"github.com/egoist/mygo/ui"
 )
@@ -370,3 +371,97 @@ func TestTaskCheckLeafBackupRemapsPendingNotice(t *testing.T) {
 		seen[check.Token] = true
 	}
 }
+
+func TestTaskNoticePanelMultiDisplayPlacementAndVisibility(t *testing.T) {
+	laptop := mygo.Display{
+		ID:       1,
+		Internal: true,
+		Primary:  true,
+		Bounds:   mygo.Rectangle{X: 0, Y: 0, Width: 1440, Height: 900},
+		WorkArea: mygo.Rectangle{X: 0, Y: 25, Width: 1440, Height: 805},
+	}
+	external := mygo.Display{
+		ID:       2,
+		Bounds:   mygo.Rectangle{X: -2560, Y: -300, Width: 2560, Height: 1440},
+		WorkArea: mygo.Rectangle{X: -2560, Y: -275, Width: 2560, Height: 1415},
+	}
+
+	b1 := taskNoticePanelBounds(laptop, 1)
+	if b1.X != 1440-taskNotifyPanelWidth-16 || b1.Y != 25+14 || b1.Width != taskNotifyPanelWidth || b1.Height != taskNotifyCardHeight {
+		t.Fatalf("unexpected laptop bounds: %+v", b1)
+	}
+	b2 := taskNoticePanelBounds(external, 2)
+	if b2.X != -taskNotifyPanelWidth-16 || b2.Y != -275+14 || b2.Width != taskNotifyPanelWidth || b2.Height != 2*taskNotifyCardHeight+1 {
+		t.Fatalf("unexpected external display bounds: %+v", b2)
+	}
+
+	if shouldShowExternalTaskNoticeState(true, true, false, 1, 1) {
+		t.Fatal("focused window on same screen should not spawn external notice")
+	}
+	if !shouldShowExternalTaskNoticeState(true, true, false, 1, 2) {
+		t.Fatal("cursor on different display should show external notice")
+	}
+	if !shouldShowExternalTaskNoticeState(false, true, false, 1, 1) {
+		t.Fatal("unfocused window should show external notice")
+	}
+	if !shouldShowExternalTaskNoticeState(true, false, false, 1, 1) {
+		t.Fatal("hidden window should show external notice")
+	}
+	if !shouldShowExternalTaskNoticeState(true, true, true, 1, 1) {
+		t.Fatal("minimized window should show external notice")
+	}
+}
+
+func TestTaskNotifyViewActionsAndDismiss(t *testing.T) {
+	if taskCheckInterval != 20*time.Minute {
+		t.Fatalf("expected 20m check interval, got %v", taskCheckInterval)
+	}
+	a, d, id, _ := checkFixture(t)
+	now := time.Now()
+	d.doc.Edit(func(e *richtext.Edit) {
+		e.FormatParagraphs(0, 0, func(p *richtext.ParagraphStyle) { p.Timer.StartedAtNS = now.Add(-taskCheckInterval).UnixNano() })
+	})
+	a.checkTimedTasks(now)
+	key := checkKey(d, id)
+
+	tt := ui.NewTester(a.taskNotifyView, taskNotifyPanelWidth, taskNotifyCardHeight)
+	if _, ok := tt.Find("悬浮屏计时确认通知"); !ok || !tt.HasText("还在继续吗？") {
+		t.Fatalf("external notice view missing content: %v", tt.Texts())
+	}
+
+	// Dismiss hides only for the current token without pausing or continuing.
+	if err := tt.Click("关闭提醒：" + key); err != nil {
+		t.Fatal(err)
+	}
+	if keys, _ := a.externalTaskNoticeKeys(); len(keys) != 0 {
+		t.Fatalf("expected dismissed notice hidden, got %v", keys)
+	}
+	if timerOf(d, id).State != richtext.TimerRunning {
+		t.Fatal("dismissing notification stopped timer")
+	}
+
+	// Clearing dismissal and clicking continue keeps timer running for next interval.
+	delete(a.taskNotifyDismissed, key)
+	tt.Frame()
+	if err := tt.Click("通知继续计时：" + key); err != nil {
+		t.Fatal(err)
+	}
+	if a.taskChecks[key].Expires != 0 || timerOf(d, id).State != richtext.TimerRunning {
+		t.Fatalf("continue failed: check=%+v timer=%+v", a.taskChecks[key], timerOf(d, id))
+	}
+
+	// Trigger a second check and click pause directly from the floating notification.
+	now2 := time.Now()
+	c := a.taskChecks[key]
+	c.Due = now2.UnixNano()
+	a.taskChecks[key] = c
+	a.checkTimedTasks(now2)
+	tt.Frame()
+	if err := tt.Click("通知暂停计时：" + key); err != nil {
+		t.Fatal(err)
+	}
+	if timerOf(d, id).State != richtext.TimerPaused {
+		t.Fatalf("pause from external notification failed: %+v", timerOf(d, id))
+	}
+}
+

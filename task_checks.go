@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -36,6 +35,7 @@ func (a *app) loadTaskChecks() {
 		a.taskChecks = map[string]taskCheck{}
 	}
 	a.taskNotices = map[string]func(){}
+	a.taskNotifyDismissed = map[string]string{}
 }
 func (a *app) saveTaskChecks() {
 	raw, err := json.Marshal(a.taskChecks)
@@ -121,6 +121,7 @@ func (a *app) checkTimedTasks(now time.Time) {
 		if !ok || task.timer.StartedAtNS != check.StartedAt {
 			a.closeTaskNotice(key)
 			delete(a.taskChecks, key)
+			delete(a.taskNotifyDismissed, key)
 			changed = true
 		}
 	}
@@ -142,6 +143,7 @@ func (a *app) checkTimedTasks(now time.Time) {
 				}
 				a.closeTaskNotice(key)
 				delete(a.taskChecks, key)
+				delete(a.taskNotifyDismissed, key)
 				changed = true
 				continue
 			}
@@ -158,6 +160,7 @@ func (a *app) checkTimedTasks(now time.Time) {
 	if changed {
 		a.saveTaskChecks()
 	}
+	a.syncTaskNotifyPanel()
 }
 
 func (a *app) continueTimedTask(key, token string, now time.Time) bool {
@@ -182,8 +185,10 @@ func (a *app) continueTimedTask(key, token string, now time.Time) bool {
 	check.Expires = 0
 	check.Token = ""
 	a.taskChecks[key] = check
+	delete(a.taskNotifyDismissed, key)
 	a.closeTaskNotice(key)
 	a.saveTaskChecks()
+	a.syncTaskNotifyPanel()
 	return true
 }
 
@@ -216,6 +221,10 @@ func (a *app) stopTaskChecks() {
 	for key := range a.taskNotices {
 		a.closeTaskNotice(key)
 	}
+	if a.taskNotifyPanel != nil && !a.taskNotifyPanel.IsDestroyed() {
+		a.taskNotifyPanel.Destroy()
+		a.taskNotifyPanel = nil
+	}
 }
 
 func (a *app) revealWindow() {
@@ -231,28 +240,234 @@ func (a *app) revealWindow() {
 	a.win.Focus()
 }
 
-func (a *app) showTaskNotification(key, token, label string, expires time.Time) func() {
-	if a.win.IsFocused() {
-		return func() {}
+const (
+	taskNotifyPanelWidth = 332
+	taskNotifyCardHeight = 104
+)
+
+func taskNoticePanelBounds(disp mygo.Display, itemCount int) mygo.Rectangle {
+	if itemCount < 1 {
+		itemCount = 1
 	}
-	if !mygo.NotificationsSupported() {
-		a.revealWindow()
-		return func() {}
+	area := disp.WorkArea
+	if area.Width <= 0 || area.Height <= 0 {
+		area = disp.Bounds
 	}
-	n := mygo.NewNotification(mygo.NotificationOptions{ID: "tree-task-" + token, Title: "还在继续吗？", Subtitle: label, Body: "点击此通知表示「在继续」。30 秒内未确认将暂停计时。"})
-	off := n.OnClick(func() { a.win.Update(func() { a.continueTimedTask(key, token, time.Now()) }) })
-	ctx, cancel := context.WithDeadline(context.Background(), expires)
-	// Authorization can await a system prompt; fall back to revealing the window if delivery fails.
-	go func() {
-		if err := n.ShowContext(ctx); err != nil && ctx.Err() == nil && a.win != nil && !a.win.IsDestroyed() {
-			a.win.Update(func() {
-				if check, ok := a.taskChecks[key]; ok && check.Token == token {
-					a.revealWindow()
-				}
-			})
+	if area.Width <= 0 || area.Height <= 0 {
+		return mygo.Rectangle{X: 16, Y: 14, Width: taskNotifyPanelWidth, Height: taskNotifyCardHeight}
+	}
+	w := min(taskNotifyPanelWidth, max(240, area.Width-32))
+	desiredH := itemCount*taskNotifyCardHeight + max(0, itemCount-1)
+	h := min(desiredH, max(taskNotifyCardHeight, area.Height-32))
+	x := area.X + area.Width - w - 16
+	y := area.Y + 14
+	return mygo.Rectangle{X: x, Y: y, Width: w, Height: h}
+}
+
+func shouldShowExternalTaskNoticeState(focused, visible, minimized bool, winDisplayID, cursorDisplayID int64) bool {
+	if !focused || !visible || minimized {
+		return true
+	}
+	if winDisplayID != 0 && cursorDisplayID != 0 && winDisplayID != cursorDisplayID {
+		return true
+	}
+	return false
+}
+
+func (a *app) shouldShowExternalTaskNotice() bool {
+	if a.win == nil || a.win.IsDestroyed() {
+		return false
+	}
+	focused := a.win.IsFocused()
+	visible := a.win.IsVisible()
+	minimized := a.win.IsMinimized()
+	var winDisplayID, cursorDisplayID int64
+	if focused && visible && !minimized {
+		winDisplayID = mygo.Screen.DisplayMatching(a.win.Bounds()).ID
+		cursorDisplayID = mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint()).ID
+	}
+	return shouldShowExternalTaskNoticeState(focused, visible, minimized, winDisplayID, cursorDisplayID)
+}
+
+func (a *app) externalTaskNoticeKeys() ([]string, map[string]runningTask) {
+	keys, tasks := a.pendingTaskCheckKeys()
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	visible := make([]string, 0, len(keys))
+	for _, key := range keys {
+		check := a.taskChecks[key]
+		if a.taskNotifyDismissed[key] == check.Token && check.Token != "" {
+			continue
 		}
-	}()
-	return func() { cancel(); off(); n.Close() }
+		visible = append(visible, key)
+	}
+	if len(visible) == 0 {
+		return nil, nil
+	}
+	return visible, tasks
+}
+
+func (a *app) dismissTaskNotifyKey(key string) {
+	if check, ok := a.taskChecks[key]; ok && check.Token != "" {
+		if a.taskNotifyDismissed == nil {
+			a.taskNotifyDismissed = map[string]string{}
+		}
+		a.taskNotifyDismissed[key] = check.Token
+	}
+	a.syncTaskNotifyPanel()
+}
+
+func (a *app) dismissAllTaskNotifyPanels() {
+	keys, _ := a.externalTaskNoticeKeys()
+	for _, key := range keys {
+		if check, ok := a.taskChecks[key]; ok && check.Token != "" {
+			if a.taskNotifyDismissed == nil {
+				a.taskNotifyDismissed = map[string]string{}
+			}
+			a.taskNotifyDismissed[key] = check.Token
+		}
+	}
+	a.syncTaskNotifyPanel()
+}
+
+func (a *app) ensureTaskNotifyPanel() *mygo.Window {
+	if a.taskNotifyPanel != nil && !a.taskNotifyPanel.IsDestroyed() {
+		return a.taskNotifyPanel
+	}
+	p := mygo.NewWindow(mygo.WindowOptions{
+		Title:         "计时确认",
+		Panel:         true,
+		Hidden:        true,
+		Frameless:     true,
+		Transparent:   true,
+		CornerRadius:  12,
+		AlwaysOnTop:   true,
+		DisableResize: true,
+		DisableMove:   true,
+		SkipTaskbar:   true,
+		Width:         taskNotifyPanelWidth,
+		Height:        taskNotifyCardHeight,
+		Content:       ui.View(a.taskNotifyView),
+	})
+	p.OnClose(func(e *mygo.CloseEvent) {
+		if a.quitting {
+			return
+		}
+		e.PreventDefault()
+		a.dismissAllTaskNotifyPanels()
+	})
+	a.taskNotifyPanel = p
+	return p
+}
+
+func (a *app) syncTaskNotifyPanel() {
+	if a.win == nil || a.win.IsDestroyed() {
+		return
+	}
+	keys, _ := a.externalTaskNoticeKeys()
+	if len(keys) == 0 || !a.shouldShowExternalTaskNotice() {
+		if a.taskNotifyPanel != nil && !a.taskNotifyPanel.IsDestroyed() && a.taskNotifyPanel.IsVisible() {
+			a.taskNotifyPanel.Hide()
+		}
+		return
+	}
+	p := a.ensureTaskNotifyPanel()
+	wasVisible := p.IsVisible()
+	var disp mygo.Display
+	if !wasVisible {
+		disp = mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
+	} else {
+		disp = mygo.Screen.DisplayMatching(p.Bounds())
+	}
+	bounds := taskNoticePanelBounds(disp, len(keys))
+	if !wasVisible || bounds != p.Bounds() {
+		p.SetBounds(bounds)
+	}
+	p.Update(func() {})
+	if !wasVisible {
+		p.ShowInactive()
+	}
+}
+
+func (a *app) showTaskNotification(key, token, label string, expires time.Time) func() {
+	a.syncTaskNotifyPanel()
+	return func() {
+		delete(a.taskNotifyDismissed, key)
+		a.syncTaskNotifyPanel()
+	}
+}
+
+func (a *app) taskNotifyView(c *ui.Context) {
+	keys, tasks := a.externalTaskNoticeKeys()
+	if len(keys) == 0 {
+		ui.Box(c)
+		return
+	}
+	now := c.Now()
+	c.After(time.Second)
+	ui.Column(c.Key("external-task-notices")).Label("悬浮屏计时确认通知").Fill().Background(paper).Border(1, line).Radius(12).Clip().Children(func() {
+		ui.Scroll(c.Key("external-task-notices-scroll")).Grow(1).MinHeight(0).Children(func() {
+			first := true
+			for _, key := range keys {
+				check := a.taskChecks[key]
+				task := tasks[key]
+				if task.timer.StartedAtNS != check.StartedAt {
+					continue
+				}
+				if !first {
+					ui.Box(c).Height(1).Background(line)
+				}
+				first = false
+				seconds := max(0, (check.Expires-now.UnixNano()+int64(time.Second)-1)/int64(time.Second))
+				ui.Column(c.Key("ext:"+key)).Padding(12, 14).Gap(6).Children(func() {
+					ui.Row(c).Height(20).Gap(6).AlignItems(ui.Center).Children(func() {
+						ui.Box(c).Size(7, 7).Radius(99).Background(ui.Hex("#2e87dc")).Shrink(0)
+						ui.Text(c, "还在继续吗？").FontSize(13.5).Bold().TextColor(ink).Grow(1).SingleLine()
+						if quietButton(c.Key("dismiss:"+key), "").Label("关闭提醒：" + key).Tooltip("暂时收起提醒").
+							Size(20, 20).Padding(3).Justify(ui.Center).AlignItems(ui.Center).TextColor(muted).
+							Children(func() { ui.Icon(c, icons["close"]).FontSize(12) }).Clicked() {
+							a.dismissTaskNotifyKey(key)
+							if a.win != nil && !a.win.IsDestroyed() {
+								a.win.Update(func() {})
+							}
+						}
+					})
+					titleBtn := quietButton(c.Key("ext-jump:"+key), "").Label("定位提醒待办：" + key).Tooltip("在 Tree 中查看").
+						Height(20).Padding(0).AlignItems(ui.Center).
+						Children(func() {
+							ui.Text(c, task.label).FontSize(13).FontWeight(500).TextColor(ink).SingleLine().MinWidth(0)
+						})
+					if titleBtn.Clicked() {
+						a.revealWindow()
+						a.jumpToTimedTask(activeTimedTask{page: task.page, leaf: task.leaf, block: task.block, label: task.label, timer: task.timer})
+						a.syncTaskNotifyPanel()
+						if a.win != nil && !a.win.IsDestroyed() {
+							a.win.Update(func() {})
+						}
+					}
+					ui.Row(c).Height(26).Margin(2, 0, 0, 0).Gap(6).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, fmt.Sprintf("%d 秒后自动暂停", seconds)).FontSize(11.5).TextColor(muted).Grow(1).SingleLine()
+						if ui.Button(c.Key("ext-pause:"+key), "暂停").Label("通知暂停计时：" + key).
+							FontSize(12).Height(26).Padding(0, 10).Radius(6).Background(sidebarColor).TextColor(ink).Border(1, line).Clicked() {
+							a.runActiveTimedTaskAction(activeTimedTask{page: task.page, leaf: task.leaf, block: task.block, label: task.label, timer: task.timer}, "pause", now)
+							a.syncTaskNotifyPanel()
+							if a.win != nil && !a.win.IsDestroyed() {
+								a.win.Update(func() {})
+							}
+						}
+						if ui.Button(c.Key("ext-continue:"+key), "在继续").Label("通知继续计时：" + key).
+							FontSize(12).FontWeight(500).Height(26).Padding(0, 12).Radius(6).Background(ui.Hex("#2e87dc")).TextColor(paper).Border(0, line).Clicked() {
+							a.continueTimedTask(key, check.Token, now)
+							if a.win != nil && !a.win.IsDestroyed() {
+								a.win.Update(func() {})
+							}
+						}
+					})
+				})
+			}
+		})
+	})
 }
 
 func (a *app) pendingTaskCheckKeys() ([]string, map[string]runningTask) {

@@ -36,11 +36,13 @@ type app struct {
 	urlPaste         *urlPasteState
 	taskEstimate      *taskEstimatePrompt
 	floatingTasksOpen bool
-	taskChecks        map[string]taskCheck
-	taskCheckTimer   *time.Timer
-	taskCheckStopped bool
-	taskNotices      map[string]func()
-	taskNotify       func(string, string, string, time.Time) func()
+	taskChecks          map[string]taskCheck
+	taskCheckTimer      *time.Timer
+	taskCheckStopped    bool
+	taskNotices         map[string]func()
+	taskNotify          func(string, string, string, time.Time) func()
+	taskNotifyPanel     *mygo.Window
+	taskNotifyDismissed map[string]string
 
 	editorDraft                               *draft
 	childMenu                                 string
