@@ -69,7 +69,7 @@ func (a *app) view(c *ui.Context) {
 			a.changed(d)
 		})
 	})
-	a.taskCheckNotices(c)
+	a.topRightOverlays(c)
 	a.dialogs(c)
 }
 

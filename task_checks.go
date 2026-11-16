@@ -255,7 +255,7 @@ func (a *app) showTaskNotification(key, token, label string, expires time.Time) 
 	return func() { cancel(); off(); n.Close() }
 }
 
-func (a *app) taskCheckNotices(c *ui.Context) {
+func (a *app) pendingTaskCheckKeys() ([]string, map[string]runningTask) {
 	pending := false
 	for _, check := range a.taskChecks {
 		if check.Expires != 0 {
@@ -264,7 +264,7 @@ func (a *app) taskCheckNotices(c *ui.Context) {
 		}
 	}
 	if !pending {
-		return
+		return nil, nil
 	}
 	tasks := a.runningTasks()
 	keys := []string{}
@@ -275,29 +275,29 @@ func (a *app) taskCheckNotices(c *ui.Context) {
 	}
 	sort.Strings(keys)
 	if len(keys) == 0 {
-		return
+		return nil, nil
 	}
-	ui.Overlay(c, func() {
-		ui.Column(c.Key("task-check-notices")).Absolute().Right(24).Top(88).Width(340).Gap(10).Children(func() {
-			for _, key := range keys {
-				check := a.taskChecks[key]
-				task := tasks[key]
-				if task.timer.StartedAtNS != check.StartedAt {
-					continue
+	return keys, tasks
+}
+
+func (a *app) renderTaskCheckNotices(c *ui.Context, keys []string, tasks map[string]runningTask) {
+	for _, key := range keys {
+		check := a.taskChecks[key]
+		task := tasks[key]
+		if task.timer.StartedAtNS != check.StartedAt {
+			continue
+		}
+		ui.Column(c.Key(key)).Label("计时继续确认").Padding(16).Gap(10).Background(paper).Border(1, line).Radius(10).Shadow(0, 4, 18, 0, ui.RGBA(0, 0, 0, .12)).Children(func() {
+			ui.Text(c, "还在继续吗？").FontSize(16).Bold()
+			ui.Text(c, task.label).FontSize(14).SingleLine().MinWidth(0)
+			seconds := max(0, (check.Expires-c.Now().UnixNano()+int64(time.Second)-1)/int64(time.Second))
+			ui.Row(c).AlignItems(ui.Center).Gap(12).Children(func() {
+				ui.Text(c, fmt.Sprintf("%d 秒后自动暂停", seconds)).FontSize(12).TextColor(muted).Grow(1)
+				if ui.Button(c, "在继续").Label("继续计时：" + key).KeepFocus().Clicked() {
+					a.continueTimedTask(key, check.Token, c.Now())
 				}
-				ui.Column(c.Key(key)).Label("计时继续确认").Padding(16).Gap(10).Background(paper).Border(1, line).Radius(10).Shadow(0, 4, 18, 0, ui.RGBA(0, 0, 0, .12)).Children(func() {
-					ui.Text(c, "还在继续吗？").FontSize(16).Bold()
-					ui.Text(c, task.label).FontSize(14).SingleLine().MinWidth(0)
-					seconds := max(0, (check.Expires-c.Now().UnixNano()+int64(time.Second)-1)/int64(time.Second))
-					ui.Row(c).AlignItems(ui.Center).Gap(12).Children(func() {
-						ui.Text(c, fmt.Sprintf("%d 秒后自动暂停", seconds)).FontSize(12).TextColor(muted).Grow(1)
-						if ui.Button(c, "在继续").Label("继续计时：" + key).KeepFocus().Clicked() {
-							a.continueTimedTask(key, check.Token, c.Now())
-						}
-					})
-				})
-			}
+			})
 		})
-	})
+	}
 	c.After(time.Second)
 }

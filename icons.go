@@ -20,6 +20,7 @@ func init() {
 		"paragraph":    `<path d="M13 4H9a5 5 0 0 0 0 10h4M13 4v16M18 4v16M10 4h11"/>`,
 		"copy":         `<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/>`,
 		"chevron-down": `<path d="m6 9 6 6 6-6"/>`,
+		"chevron-up":   `<path d="m18 15-6-6-6 6"/>`,
 		"compose":      `<path d="M13 4H6a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h11a3 3 0 0 0 3-3v-7M10 14l-1 4 4-1L22 8l-3-3z"/>`,
 		"back":         `<path d="m15 5-7 7 7 7"/>`,
 		"forward":      `<path d="m9 5 7 7-7 7"/>`,
