@@ -34,15 +34,15 @@ func TestTaskCheckContinueAndNextInterval(t *testing.T) {
 	key := checkKey(d, id)
 	shown, closed := 0, 0
 	a.taskNotify = func(_, _, _ string, _ time.Time) func() { shown++; return func() { closed++ } }
-	a.checkTimedTasks(start.Add(20*time.Minute - time.Nanosecond))
+	a.checkTimedTasks(start.Add(taskCheckInterval - time.Nanosecond))
 	if shown != 0 {
 		t.Fatal("notified early")
 	}
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	check := a.taskChecks[key]
-	if shown != 1 || check.Expires != due.Add(5*time.Second).UnixNano() {
-		t.Fatal("missing five-second confirmation")
+	if shown != 1 || check.Expires != due.Add(taskCheckGrace).UnixNano() {
+		t.Fatal("missing thirty-second confirmation")
 	}
 	before, version := timerOf(d, id), d.doc.Version()
 	a.checkTimedTasks(due.Add(time.Second))
@@ -58,7 +58,7 @@ func TestTaskCheckContinueAndNextInterval(t *testing.T) {
 	if a.continueTimedTask(key, check.Token, due.Add(4*time.Second)) {
 		t.Fatal("double click accepted")
 	}
-	next := due.Add(4*time.Second + 20*time.Minute)
+	next := due.Add(4*time.Second + taskCheckInterval)
 	a.checkTimedTasks(next.Add(-time.Nanosecond))
 	if shown != 1 {
 		t.Fatal("second reminder early")
@@ -70,24 +70,30 @@ func TestTaskCheckContinueAndNextInterval(t *testing.T) {
 }
 
 func TestTaskCheckTimeoutDailyHistoryAndLateClick(t *testing.T) {
-	a, d, id, start := checkFixture(t)
+	a, _, id := timedTaskFixture(t)
+	d := a.current()
+	midnight := time.Date(2026, 11, 7, 0, 0, 0, 0, time.FixedZone("Asia/Shanghai", 8*3600))
+	firstDay := taskCheckInterval / 2
+	secondDay := taskCheckInterval - firstDay + taskCheckGrace
+	start := midnight.Add(-firstDay)
+	a.timedTaskAction(d, id, "start", start)
 	key := checkKey(d, id)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	token := a.taskChecks[key].Token
-	a.checkTimedTasks(due.Add(5*time.Second - time.Nanosecond))
+	a.checkTimedTasks(due.Add(taskCheckGrace - time.Nanosecond))
 	if timerOf(d, id).State != richtext.TimerRunning {
 		t.Fatal("paused before deadline")
 	}
-	if a.continueTimedTask(key, token, due.Add(5*time.Second)) {
+	if a.continueTimedTask(key, token, due.Add(taskCheckGrace)) {
 		t.Fatal("deadline click revived task")
 	}
 	timer := timerOf(d, id)
-	if timer.State != richtext.TimerPaused || timer.ElapsedNS != int64(20*time.Minute+5*time.Second) {
+	if timer.State != richtext.TimerPaused || timer.ElapsedNS != int64(taskCheckInterval+taskCheckGrace) {
 		t.Fatalf("incorrect timeout: %+v", timer)
 	}
 	history := d.page.Body.TaskTimes[timer.HistoryID]
-	if len(history) != 2 || history[0].DurationNS != int64(10*time.Minute) || history[1].DurationNS != int64(10*time.Minute+5*time.Second) {
+	if len(history) != 2 || history[0].DurationNS != int64(firstDay) || history[1].DurationNS != int64(secondDay) {
 		t.Fatalf("daily history incorrect: %+v", history)
 	}
 	a.checkTimedTasks(due.Add(time.Hour))
@@ -107,21 +113,26 @@ func TestTaskCheckTimeoutDailyHistoryAndLateClick(t *testing.T) {
 func TestTaskCheckDelayedWakeRestartAndConfirmationPersistence(t *testing.T) {
 	a, d, id, start := checkFixture(t)
 	key := checkKey(d, id)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	a.continueTimedTask(key, a.taskChecks[key].Token, due.Add(2*time.Second))
 	reopened, err := newApp(a.store)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reopened.checkTimedTasks(due.Add(10 * time.Minute))
+	reopened.checkTimedTasks(due.Add(taskCheckInterval / 2))
 	if timerOf(reopened.draftForPage(d.page.ID), id).State != richtext.TimerRunning {
 		t.Fatal("restart forgot confirmation")
 	}
-	reopened.checkTimedTasks(start.Add(8 * time.Hour))
+	late := start.Add(8 * time.Hour)
+	reopened.checkTimedTasks(late)
+	if timerOf(reopened.draftForPage(d.page.ID), id).State != richtext.TimerRunning || reopened.taskChecks[key].Expires != late.Add(taskCheckGrace).UnixNano() {
+		t.Fatal("delayed check did not show thirty-second confirmation")
+	}
+	reopened.checkTimedTasks(late.Add(taskCheckGrace))
 	timer := timerOf(reopened.draftForPage(d.page.ID), id)
-	if timer.State != richtext.TimerPaused || timer.ElapsedNS != int64(40*time.Minute+7*time.Second) {
-		t.Fatalf("sleep counted unattended hours: %+v", timer)
+	if timer.State != richtext.TimerPaused || timer.ElapsedNS != int64(8*time.Hour+taskCheckGrace) {
+		t.Fatalf("delayed timeout incorrect: %+v", timer)
 	}
 }
 
@@ -130,7 +141,7 @@ func TestTaskCheckManualActionsInvalidateNotice(t *testing.T) {
 		t.Run(action, func(t *testing.T) {
 			a, d, id, start := checkFixture(t)
 			key := checkKey(d, id)
-			due := start.Add(20 * time.Minute)
+			due := start.Add(taskCheckInterval)
 			a.checkTimedTasks(due)
 			token := a.taskChecks[key].Token
 			a.timedTaskAction(d, id, action, due.Add(time.Second))
@@ -152,7 +163,7 @@ func TestTaskCheckManualActionsInvalidateNotice(t *testing.T) {
 func TestTaskCheckDeletedTaskAndResumedSession(t *testing.T) {
 	a, d, id, start := checkFixture(t)
 	key := checkKey(d, id)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	token := a.taskChecks[key].Token
 	a.timedTaskAction(d, id, "pause", due.Add(time.Second))
@@ -161,7 +172,7 @@ func TestTaskCheckDeletedTaskAndResumedSession(t *testing.T) {
 	if a.continueTimedTask(key, token, due.Add(3*time.Second)) {
 		t.Fatal("old notice confirmed new session")
 	}
-	if a.taskChecks[key].Due != due.Add(2*time.Second+20*time.Minute).UnixNano() {
+	if a.taskChecks[key].Due != due.Add(2*time.Second+taskCheckInterval).UnixNano() {
 		t.Fatal("resume interval wrong")
 	}
 	editBlock(d.doc, 0, "delete")
@@ -188,11 +199,11 @@ func TestTaskCheckInactivePageAndCollapsedLeaf(t *testing.T) {
 	v.collapsed = true
 	a.addPage("")
 	selected := a.selected
-	a.checkTimedTasks(start.Add(20 * time.Minute))
+	a.checkTimedTasks(start.Add(taskCheckInterval))
 	if len(a.taskChecks) != 1 || a.selected != selected {
 		t.Fatal("background Leaf not monitored or changed selected page")
 	}
-	a.checkTimedTasks(start.Add(20*time.Minute + 5*time.Second))
+	a.checkTimedTasks(start.Add(taskCheckInterval + taskCheckGrace))
 	if timerOf(child, id).State != richtext.TimerPaused {
 		t.Fatal("collapsed Leaf still running")
 	}
@@ -212,7 +223,7 @@ func TestTaskCheckNotificationButton(t *testing.T) {
 	// Use the test view's wall clock so a click falls inside the grace period.
 	now := time.Now()
 	d.doc.Edit(func(e *richtext.Edit) {
-		e.FormatParagraphs(0, 0, func(p *richtext.ParagraphStyle) { p.Timer.StartedAtNS = now.Add(-20 * time.Minute).UnixNano() })
+		e.FormatParagraphs(0, 0, func(p *richtext.ParagraphStyle) { p.Timer.StartedAtNS = now.Add(-taskCheckInterval).UnixNano() })
 	})
 	a.checkTimedTasks(now)
 	key := checkKey(d, id)
@@ -250,7 +261,7 @@ func TestTaskCheckMultipleIndependentTimers(t *testing.T) {
 	if !a.timedTaskAction(other, secondID, "start", start) {
 		t.Fatal("second timer did not start")
 	}
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	if len(a.taskChecks) != 2 {
 		t.Fatal("concurrent timer checks missing")
@@ -259,7 +270,7 @@ func TestTaskCheckMultipleIndependentTimers(t *testing.T) {
 	if !a.continueTimedTask(key, a.taskChecks[key].Token, due.Add(time.Second)) {
 		t.Fatal("first timer confirmation failed")
 	}
-	a.checkTimedTasks(due.Add(5 * time.Second))
+	a.checkTimedTasks(due.Add(taskCheckGrace))
 	if timerOf(d, id).State != richtext.TimerRunning || timerOf(other, secondID).State != richtext.TimerPaused {
 		t.Fatal("confirming one timer affected another")
 	}
@@ -267,7 +278,7 @@ func TestTaskCheckMultipleIndependentTimers(t *testing.T) {
 
 func TestTaskCheckPendingRestartKeepsDeadline(t *testing.T) {
 	a, d, id, start := checkFixture(t)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.checkTimedTasks(due)
 	reopened, err := newApp(a.store)
 	if err != nil {
@@ -275,18 +286,18 @@ func TestTaskCheckPendingRestartKeepsDeadline(t *testing.T) {
 	}
 	reopened.checkTimedTasks(due.Add(4 * time.Second))
 	key := checkKey(d, id)
-	if reopened.taskChecks[key].Expires != due.Add(5*time.Second).UnixNano() {
+	if reopened.taskChecks[key].Expires != due.Add(taskCheckGrace).UnixNano() {
 		t.Fatal("restart extended response window")
 	}
 	reopened.checkTimedTasks(due.Add(30 * time.Minute))
-	if got := timerOf(reopened.draftForPage(d.page.ID), id); got.State != richtext.TimerPaused || got.ElapsedNS != int64(20*time.Minute+5*time.Second) {
+	if got := timerOf(reopened.draftForPage(d.page.ID), id); got.State != richtext.TimerPaused || got.ElapsedNS != int64(taskCheckInterval+taskCheckGrace) {
 		t.Fatal("pending restart lost timeout")
 	}
 }
 
 func TestTaskCheckBackupKeepsConfirmedTime(t *testing.T) {
 	a, d, id, start := checkFixture(t)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	key := checkKey(d, id)
 	a.checkTimedTasks(due)
 	a.continueTimedTask(key, a.taskChecks[key].Token, due.Add(time.Second))
@@ -302,15 +313,16 @@ func TestTaskCheckBackupKeepsConfirmedTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	restored.checkTimedTasks(start.Add(30 * time.Minute))
+	restored.checkTimedTasks(due.Add(taskCheckInterval / 2))
 	if len(restored.runningTasks()) != 1 {
 		t.Fatal("backup lost confirmation and truncated already confirmed time")
 	}
 	restored.checkTimedTasks(start.Add(time.Hour))
+	restored.checkTimedTasks(start.Add(time.Hour + taskCheckGrace))
 	for _, p := range restored.pages {
 		for _, para := range p.Body.Text.Paragraphs() {
 			if para.Style.ID == id {
-				if para.Style.Timer.ElapsedNS != int64(40*time.Minute+6*time.Second) {
+				if para.Style.Timer.ElapsedNS != int64(time.Hour+taskCheckGrace) {
 					t.Fatal("restored deadline wrong")
 				}
 				return
@@ -331,7 +343,7 @@ func TestTaskCheckLeafBackupRemapsPendingNotice(t *testing.T) {
 	})
 	id := d.doc.Text().ParagraphStyleAt(0).ID
 	start := time.Date(2026, 11, 6, 10, 0, 0, 0, time.UTC)
-	due := start.Add(20 * time.Minute)
+	due := start.Add(taskCheckInterval)
 	a.timedTaskAction(d, id, "start", start)
 	a.checkTimedTasks(due)
 	original := a.taskChecks[checkKey(d, id)]

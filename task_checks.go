@@ -14,7 +14,7 @@ import (
 )
 
 const taskCheckInterval = 20 * time.Minute
-const taskCheckGrace = 5 * time.Second
+const taskCheckGrace = 30 * time.Second
 const taskCheckSetting = "timedTaskChecks"
 
 type taskCheck struct {
@@ -132,12 +132,7 @@ func (a *app) checkTimedTasks(now time.Time) {
 		}
 		if now.UnixNano() >= check.Due {
 			if check.Expires == 0 {
-				// No new five-second grace period for an overdue task after sleep/restart.
-				expires := now.Add(taskCheckGrace).UnixNano()
-				if now.UnixNano() >= check.Due+int64(taskCheckGrace) {
-					expires = check.Due + int64(taskCheckGrace)
-				}
-				check.Expires = expires
+				check.Expires = now.Add(taskCheckGrace).UnixNano()
 				check.Token = newID()
 				changed = true
 			}
@@ -223,15 +218,40 @@ func (a *app) stopTaskChecks() {
 	}
 }
 
+func (a *app) revealWindow() {
+	if a.win == nil || a.win.IsDestroyed() {
+		return
+	}
+	mygo.App.Show()
+	if a.win.IsMinimized() {
+		a.win.Restore()
+	}
+	a.win.Show()
+	mygo.App.Focus()
+	a.win.Focus()
+}
+
 func (a *app) showTaskNotification(key, token, label string, expires time.Time) func() {
-	if a.win.IsFocused() || !mygo.NotificationsSupported() {
+	if a.win.IsFocused() {
 		return func() {}
 	}
-	n := mygo.NewNotification(mygo.NotificationOptions{ID: "tree-task-" + token, Title: "还在继续吗？", Subtitle: label, Body: "点击此通知表示「在继续」。5 秒内未确认将暂停计时。"})
+	if !mygo.NotificationsSupported() {
+		a.revealWindow()
+		return func() {}
+	}
+	n := mygo.NewNotification(mygo.NotificationOptions{ID: "tree-task-" + token, Title: "还在继续吗？", Subtitle: label, Body: "点击此通知表示「在继续」。30 秒内未确认将暂停计时。"})
 	off := n.OnClick(func() { a.win.Update(func() { a.continueTimedTask(key, token, time.Now()) }) })
 	ctx, cancel := context.WithDeadline(context.Background(), expires)
-	// Authorization can await a system prompt; it must never block the timer.
-	go func() { _ = n.ShowContext(ctx) }()
+	// Authorization can await a system prompt; fall back to revealing the window if delivery fails.
+	go func() {
+		if err := n.ShowContext(ctx); err != nil && ctx.Err() == nil && a.win != nil && !a.win.IsDestroyed() {
+			a.win.Update(func() {
+				if check, ok := a.taskChecks[key]; ok && check.Token == token {
+					a.revealWindow()
+				}
+			})
+		}
+	}()
 	return func() { cancel(); off(); n.Close() }
 }
 

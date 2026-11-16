@@ -39,16 +39,7 @@ func main() {
 		mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu}, {Label: "文件", Submenu: a.fileMenu()}, {Role: mygo.RoleEditMenu}, {Role: mygo.RoleFormatMenu}, {Role: mygo.RoleWindowMenu}}))
 		a.win = mygo.NewWindow(mygo.WindowOptions{Title: "Tree — 本地笔记", TitleBarStyle: mygo.TitleBarHidden, Width: 1120, Height: 800, MinWidth: 850, MinHeight: 580, StateKey: "notes", Content: ui.View(a.view)})
 		if err := mygo.GlobalShortcut.Register("Cmd+,", func() {
-			if a.win == nil || a.win.IsDestroyed() {
-				return
-			}
-			mygo.App.Show()
-			if a.win.IsMinimized() {
-				a.win.Restore()
-			}
-			a.win.Show()
-			mygo.App.Focus()
-			a.win.Focus()
+			a.revealWindow()
 		}); err != nil {
 			a.report(fmt.Errorf("无法注册全局快捷键 ⌘,：%w", err))
 		} else {
