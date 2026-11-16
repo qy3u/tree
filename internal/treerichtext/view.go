@@ -151,6 +151,7 @@ type view struct {
 	anchor          int
 	anchorOff       float64
 	reveal          bool
+	centerReveal    bool
 	restoreViewport *float64
 	first, last     int
 	// The selection, in runes: anchor and caret, and the caret's visual
@@ -371,6 +372,11 @@ func (v *view) lockedSync() (change, bool) {
 		v.hasDesired = false
 		v.compose, v.composing = "", false
 		v.composeCaret, v.composeSelected = 0, ui.TextInputRange{}
+		v.reveal = true
+	}
+	if d.centerSel {
+		d.centerSel = false
+		v.centerReveal = true
 		v.reveal = true
 	}
 	return c, moved
@@ -857,6 +863,7 @@ func (v *view) layout(w, h float32) {
 		}
 		v.scroll = 0
 		v.reveal = false
+		v.centerReveal = false
 	}
 	v.estimate()
 	if v.restoreViewport != nil {
@@ -872,21 +879,39 @@ func (v *view) layout(w, h float32) {
 		}
 		v.setScroll(offset)
 		v.reveal = false
+		v.centerReveal = false
 	}
 	v.place(h)
 	if v.reveal {
 		v.reveal = false
-		_, y, ch := v.caretAt(v.caret, v.composeCaret, v.affinity)
-		switch {
-		case y < v.scroll:
-			v.setScroll(y)
-		case y+float64(ch) > v.scroll+float64(h):
+		center := v.centerReveal
+		v.centerReveal = false
+		if center && !v.opts.FitContent && len(v.paras) > 0 {
 			p := v.shown.paraAt(v.caret)
-			for q, room := p-1, y+float64(ch)-v.hs.top(p); q >= 0 && room < float64(h); q-- {
+			pv := v.paraLayout(p)
+			for q, room := p-1, float64(pv.h)/2; q >= 0 && room < float64(h); q-- {
 				room += float64(v.paraLayout(q).h)
 			}
-			_, y, ch = v.caretAt(v.caret, v.composeCaret, v.affinity)
-			v.setScroll(y + float64(ch) - float64(h))
+			for q, room := p+1, float64(pv.h)/2; q < len(v.paras) && room < float64(h); q++ {
+				room += float64(v.paraLayout(q).h)
+			}
+			_, oy := v.origin(p)
+			bh := float64(pv.h - pv.space)
+			target := oy + min(bh, float64(h))/2 - float64(h)/2
+			v.setScroll(max(0, target))
+		} else {
+			_, y, ch := v.caretAt(v.caret, v.composeCaret, v.affinity)
+			switch {
+			case y < v.scroll:
+				v.setScroll(y)
+			case y+float64(ch) > v.scroll+float64(h):
+				p := v.shown.paraAt(v.caret)
+				for q, room := p-1, y+float64(ch)-v.hs.top(p); q >= 0 && room < float64(h); q-- {
+					room += float64(v.paraLayout(q).h)
+				}
+				_, y, ch = v.caretAt(v.caret, v.composeCaret, v.affinity)
+				v.setScroll(y + float64(ch) - float64(h))
+			}
 		}
 		v.place(h)
 	}

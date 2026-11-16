@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -287,3 +289,149 @@ func TestFloatingTimedTasksJumpAndNoticeCoexistence(t *testing.T) {
 		t.Fatalf("jump to leaf task failed: selected=%s collapsed=%v jump=%+v", a.selected, lv.collapsed, a.blockJump)
 	}
 }
+
+func TestFloatingTimedTasksJumpCentersBlock(t *testing.T) {
+	a, tt := commandTestApp(t)
+	page1 := a.selected
+	d := a.current()
+
+	// Build a tall document with a timed task near the top, one in the middle, and one near the bottom.
+	var paras []richtext.Paragraph
+	for i := range 90 {
+		p := richtext.Paragraph{
+			Style: richtext.ParagraphStyle{ID: newID()},
+			Runs:  []richtext.Run{{Text: fmt.Sprintf("第 %02d 段参考内容，用于拉长页面高度以便测试居中跳转效果", i)}},
+		}
+		if i == 1 || i == 45 || i == 88 {
+			p.Style.List = richtext.Tasks
+			p.Style.Timer = richtext.TaskTimer{
+				State:       richtext.TimerRunning,
+				StartedAtNS: tt.Now().UnixNano(),
+				HasEstimate: true,
+				EstimatedNS: int64(25 * time.Minute),
+			}
+		}
+		paras = append(paras, p)
+	}
+	d.doc.SetText(richtext.TextOf(paras...))
+	tt.Frame()
+
+	allParas := menuParagraphs(d.doc.Text())
+	topID := allParas[1].Style.ID
+	midID := allParas[45].Style.ID
+	botID := allParas[88].Style.ID
+
+	assertVisibleCenter := func(id string, wantCentered bool) {
+		t.Helper()
+		pos, ok := blockPosition(d.doc.Text(), id)
+		if !ok {
+			t.Fatalf("missing block %s", id)
+		}
+		var targetBox richtext.ParagraphBox
+		found := false
+		for _, box := range d.doc.VisibleParagraphs() {
+			if box.Start == pos {
+				targetBox = box
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("jumped block %s not visible in viewport (scroll=%v)", id, d.doc.ScrollOffset())
+		}
+		if wantCentered {
+			vp := d.doc.ViewportHeight()
+			center := targetBox.Top + targetBox.Height/2
+			if math.Abs(float64(center-vp/2)) > 24 {
+				t.Fatalf("expected block %s centered near %.1f, got center=%.1f (box=%+v scroll=%.1f)", id, vp/2, center, targetBox, d.doc.ScrollOffset())
+			}
+		}
+	}
+
+	// Jump to middle block from another page: should land near vertical center.
+	a.addPage("")
+	tt.Frame()
+	a.jumpToTimedTask(activeTimedTask{page: page1, block: midID})
+	tt.Frame()
+	assertVisibleCenter(midID, true)
+
+	// Jump to bottom block: not enough blank space below, should still clamp cleanly and show block.
+	a.jumpToTimedTask(activeTimedTask{page: page1, block: botID})
+	tt.Frame()
+	assertVisibleCenter(botID, false)
+
+	// Jump to top block: not enough content above, should clamp cleanly to top.
+	a.jumpToTimedTask(activeTimedTask{page: page1, block: topID})
+	tt.Frame()
+	if d.doc.ScrollOffset() != 0 {
+		t.Fatalf("expected top jump clamped to 0, got %v", d.doc.ScrollOffset())
+	}
+	assertVisibleCenter(topID, false)
+
+	// Add a tall Leaf near the bottom of a long page and jump to a task in the middle of the Leaf.
+	d.doc.SetSelection(d.doc.Text().Len(), d.doc.Text().Len())
+	a.createLeaf(d)
+	tt.Frame()
+	var lv *leafView
+	for _, view := range d.leafViews {
+		lv = view
+		break
+	}
+	var leafParas []richtext.Paragraph
+	for i := range 50 {
+		p := richtext.Paragraph{
+			Style: richtext.ParagraphStyle{ID: newID()},
+			Runs:  []richtext.Run{{Text: fmt.Sprintf("Leaf 内部第 %02d 段内容，用来验证跨 Leaf 跳转居中", i)}},
+		}
+		if i == 25 {
+			p.Style.List = richtext.Tasks
+			p.Style.Timer = richtext.TaskTimer{
+				State:       richtext.TimerRunning,
+				StartedAtNS: tt.Now().UnixNano(),
+				HasEstimate: true,
+				EstimatedNS: int64(15 * time.Minute),
+			}
+		}
+		leafParas = append(leafParas, p)
+	}
+	// Append trailing paragraphs to the outer page so there is room below the Leaf too.
+	for i := range 30 {
+		d.doc.SetSelection(d.doc.Text().Len(), d.doc.Text().Len())
+		d.doc.InsertText(fmt.Sprintf("\nLeaf 后方补充段落 %02d", i))
+	}
+	lv.draft.doc.SetText(richtext.TextOf(leafParas...))
+	lv.collapsed = true
+	d.layoutRevision++
+	a.addPage("")
+	tt.Frame()
+
+	leafMidID := menuParagraphs(lv.draft.doc.Text())[25].Style.ID
+	a.jumpToTimedTask(activeTimedTask{page: page1, leaf: lv.draft.leafID, block: leafMidID})
+	for range 4 {
+		tt.Frame()
+	}
+	leafPos, _ := blockPosition(lv.draft.doc.Text(), leafMidID)
+	var leafBox richtext.ParagraphBox
+	for _, box := range lv.draft.doc.VisibleParagraphs() {
+		if box.Start == leafPos {
+			leafBox = box
+			break
+		}
+	}
+	var leafRect ui.Rect
+	for _, att := range d.doc.VisibleAttachments() {
+		if leafID(att.Attachment) == lv.draft.leafID {
+			leafRect = att.Rect
+			break
+		}
+	}
+	if leafRect.W == 0 {
+		t.Fatal("target Leaf not visible after jump")
+	}
+	vp := d.doc.ViewportHeight()
+	leafCenter := leafRect.Y + 52 + leafBox.Top + leafBox.Height/2
+	if math.Abs(float64(leafCenter-vp/2)) > 24 {
+		t.Fatalf("expected Leaf block centered near %.1f, got %.1f (leafRect=%+v leafBox=%+v scroll=%.1f)", vp/2, leafCenter, leafRect, leafBox, d.doc.ScrollOffset())
+	}
+}
+

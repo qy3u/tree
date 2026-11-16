@@ -139,6 +139,7 @@ func (a *app) jumpToTimedTask(t activeTimedTask) {
 			return
 		}
 		d.doc.SetSelection(pos, pos)
+		d.doc.CenterSelection()
 		a.blockJump = blockJump{page: t.page, block: t.block}
 		return
 	}
@@ -152,6 +153,7 @@ func (a *app) jumpToTimedTask(t activeTimedTask) {
 		}
 		if matched {
 			d.doc.SetSelection(pos, pos)
+			d.doc.CenterSelection()
 			break
 		}
 	}
@@ -164,6 +166,7 @@ func (a *app) jumpToTimedTask(t activeTimedTask) {
 			v.draft.doc.SetSelection(bpos, bpos)
 			v.focusBody = true
 			v.reveal = true
+			v.centerReveal = true
 			a.blockJump = blockJump{page: d.page.ID + ":" + t.leaf, block: t.block}
 		}
 	}

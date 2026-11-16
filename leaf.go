@@ -25,9 +25,10 @@ type leafView struct {
 	height     float32
 	focusTitle bool
 	focusBody  bool
-	caret      int
-	version    uint64
-	reveal     bool
+	caret        int
+	version      uint64
+	reveal       bool
+	centerReveal bool
 }
 
 func leafDisplayTitle(s string) string {
@@ -336,15 +337,42 @@ func (a *app) leafControls(c *ui.Context, d *draft) {
 				d.layoutRevision++
 				c.After(0)
 			} else if v.reveal {
-				caret := child.doc.CaretRect()
-				y := r.Y + 52 + caret.Y
-				viewport := d.doc.ViewportHeight()
-				if y+caret.H > viewport-16 {
-					d.doc.ScrollBy(y + caret.H - viewport + 16)
-				} else if y < 8 {
-					d.doc.ScrollBy(y - 8)
+				if v.centerReveal {
+					boxes := child.doc.VisibleParagraphs()
+					if len(boxes) == 0 {
+						c.After(0)
+					} else {
+						viewport := d.doc.ViewportHeight()
+						_, caretPos := child.doc.Selection()
+						paraStart, _ := child.doc.Text().ParagraphRange(caretPos)
+						var centerY float32
+						found := false
+						for _, box := range boxes {
+							if box.Start == paraStart {
+								centerY = r.Y + 52 + box.Top + min(box.Height, viewport)/2
+								found = true
+								break
+							}
+						}
+						if !found {
+							caret := child.doc.CaretRect()
+							centerY = r.Y + 52 + caret.Y + caret.H/2
+						}
+						d.doc.ScrollBy(centerY - viewport/2)
+						v.reveal = false
+						v.centerReveal = false
+					}
+				} else {
+					caret := child.doc.CaretRect()
+					y := r.Y + 52 + caret.Y
+					viewport := d.doc.ViewportHeight()
+					if y+caret.H > viewport-16 {
+						d.doc.ScrollBy(y + caret.H - viewport + 16)
+					} else if y < 8 {
+						d.doc.ScrollBy(y - 8)
+					}
+					v.reveal = false
 				}
-				v.reveal = false
 			}
 			a.changed(child)
 		})

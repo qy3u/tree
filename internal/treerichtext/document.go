@@ -29,6 +29,7 @@ type Document struct {
 	// selVersion counts changes of the selection made by the document's
 	// methods, which the editor then takes.
 	selVersion uint64
+	centerSel  bool
 	undo, redo []undoStep
 	lastEdit   time.Time
 	coalesce   bool // typing may join the last step
@@ -117,11 +118,23 @@ func (d *Document) SetSelection(anchor, caret int) {
 	d.setSelection(anchor, caret)
 }
 
+// CenterSelection asks the editor to center the paragraph holding the
+// selection in its viewport on the next layout.
+func (d *Document) CenterSelection() {
+	d.lock()
+	defer d.mu.Unlock()
+	d.centerSel = true
+	if v := d.shownIn.Value(); v != nil {
+		v.services.Invalidate()
+	}
+}
+
 func (d *Document) setSelection(anchor, caret int) {
 	n := d.text.Len()
 	d.anchor, d.caret = max(0, min(anchor, n)), max(0, min(caret, n))
 	d.typing = nil
 	d.coalesce = false
+	d.centerSel = false
 	d.selVersion++
 }
 
