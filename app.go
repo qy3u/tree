@@ -43,6 +43,8 @@ type app struct {
 	taskNotify          func(string, string, string, time.Time) func()
 	taskNotifyPanel     *mygo.Window
 	taskNotifyDismissed map[string]string
+	taskNotifyWatering  map[string]taskWateringAnim
+	taskWaterTimer      *time.Timer
 
 	editorDraft                               *draft
 	childMenu                                 string

@@ -219,7 +219,7 @@ func (a *app) topRightOverlays(c *ui.Context) {
 	if len(tasks) == 0 {
 		a.floatingTasksOpen = false
 	}
-	noticeKeys, runningMap := a.pendingTaskCheckKeys()
+	noticeKeys, runningMap := a.inWindowTaskNotices(c.Now())
 	if len(tasks) == 0 && len(noticeKeys) == 0 {
 		return
 	}

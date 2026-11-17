@@ -3,6 +3,7 @@ package main
 import (
 	"image/png"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -464,4 +465,85 @@ func TestTaskNotifyViewActionsAndDismiss(t *testing.T) {
 		t.Fatalf("pause from external notification failed: %+v", timerOf(d, id))
 	}
 }
+
+func TestTaskNotifyWateringAnimationLifecycle(t *testing.T) {
+	a, d, id, _ := checkFixture(t)
+	now := time.Now()
+	d.doc.Edit(func(e *richtext.Edit) {
+		e.FormatParagraphs(0, 0, func(p *richtext.ParagraphStyle) { p.Timer.StartedAtNS = now.Add(-taskCheckInterval).UnixNano() })
+	})
+	a.checkTimedTasks(now)
+	key := checkKey(d, id)
+
+	tt := ui.NewTester(a.taskNotifyView, taskNotifyPanelWidth, taskNotifyCardHeight)
+	shotDir := os.Getenv("TREE_WATER_TEST_DIR")
+	saveShot := func(name string) {
+		if shotDir == "" {
+			return
+		}
+		f, err := os.Create(filepath.Join(shotDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if err := png.Encode(f, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	saveShot("01-waiting.png")
+
+	if err := tt.Click("通知继续计时：" + key); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	anim, ok := a.taskNotifyWatering[key]
+	if !ok {
+		t.Fatal("expected watering animation to start after clicking continue")
+	}
+	if !tt.HasText("已浇水 · 继续生长中") || !tt.HasText("已确认 ✓") {
+		t.Fatalf("expected watering confirmation state, got texts=%v", tt.Texts())
+	}
+
+	// Remains visible halfway through the watering animation, then auto-closes after duration.
+	startedAt := time.Unix(0, anim.Started)
+	if keys, _ := a.externalTaskNoticeKeysAt(startedAt.Add(taskNotifyWaterDuration / 2)); len(keys) != 1 {
+		t.Fatalf("expected watering notice to stay visible mid-animation, got %v", keys)
+	}
+	if keys, _ := a.externalTaskNoticeKeysAt(startedAt.Add(taskNotifyWaterDuration + time.Millisecond)); len(keys) != 0 {
+		t.Fatalf("expected watering notice to auto-close after animation, got %v", keys)
+	}
+
+	// Render mid-pouring and late-sprout keyframes by shifting animation start/end.
+	if shotDir != "" {
+		baseNow := time.Now()
+		a.taskNotifyWatering[key] = taskWateringAnim{
+			Label:     "写文档",
+			Started:   baseNow.Add(-460 * time.Millisecond).UnixNano(),
+			Ends:      baseNow.Add(taskNotifyWaterDuration - 460*time.Millisecond).UnixNano(),
+			StartFrac: 0.72,
+		}
+		tt.Frame()
+		saveShot("02-pouring.png")
+
+		a.taskNotifyWatering[key] = taskWateringAnim{
+			Label:     "写文档",
+			Started:   baseNow.Add(-960 * time.Millisecond).UnixNano(),
+			Ends:      baseNow.Add(taskNotifyWaterDuration - 960*time.Millisecond).UnixNano(),
+			StartFrac: 0.72,
+		}
+		tt.Frame()
+		saveShot("03-watered.png")
+	}
+
+	// Dismissing mid-watering closes immediately.
+	a.startTaskWatering(key, "测试", 0.8, time.Now())
+	tt.Frame()
+	if err := tt.Click("关闭提醒：" + key); err != nil {
+		t.Fatal(err)
+	}
+	if len(a.taskNotifyWatering) != 0 {
+		t.Fatalf("expected dismiss to clear watering animation, got %+v", a.taskNotifyWatering)
+	}
+}
+
 
